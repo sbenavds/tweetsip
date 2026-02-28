@@ -11,7 +11,10 @@
     "preview": "pnpm run build && vite preview",
     "test": "vitest run",
     "deploy": "pnpm run build && wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "check": "biome check ./src --write",
+    "typecheck": "tsc --noEmit",
+    "generate-types": "wrangler types"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.13.8",
