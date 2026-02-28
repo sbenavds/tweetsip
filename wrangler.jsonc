@@ -22,4 +22,19 @@
       "preview_bucket_name": "tweetsip-data",
     },
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "QUEUE",
+        "queue": "tweetsip-jobs",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "tweetsip-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+      },
+    ],
+  },
 }
