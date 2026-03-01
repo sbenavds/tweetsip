@@ -1,6 +1,5 @@
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import type * as schema from "@/db/schema";
-import { trackedAccounts } from "@/db/schema";
 import { enqueue } from "@/lib/queue";
 
 type Db = DrizzleD1Database<typeof schema>;

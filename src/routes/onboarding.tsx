@@ -1,11 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useActionState, useEffect, useState } from "react";
-import { createServerFn } from "@tanstack/react-start";
+import { useActionState, useTransition } from "react";
 import { Plus, X, ArrowRight, Loader2 } from "lucide-react";
 import { create } from "zustand";
-import { getDb } from "@/db";
-import { trackedAccounts } from "@/db/schema";
-import { authMiddleware } from "@/middleware";
 import { addAccount } from "@/functions/accounts";
 
 export const Route = createFileRoute("/onboarding")({
@@ -18,7 +14,6 @@ type OnboardingStore = {
   handles: string[];
   addHandle: (handle: string) => void;
   removeHandle: (handle: string) => void;
-  reset: () => void;
 };
 
 const useOnboarding = create<OnboardingStore>((set) => ({
@@ -29,28 +24,7 @@ const useOnboarding = create<OnboardingStore>((set) => ({
     })),
   removeHandle: (handle) =>
     set((s) => ({ handles: s.handles.filter((h) => h !== handle) })),
-  reset: () => set({ handles: [] }),
 }));
-
-// ---- Add handle action ----
-
-type AddHandleState = { error?: string };
-
-function useAddHandle() {
-  const { handles, addHandle } = useOnboarding();
-
-  return useActionState(
-    async (_: AddHandleState, formData: FormData): Promise<AddHandleState> => {
-      const raw = (formData.get("handle") as string).trim().replace(/^@/, "");
-      if (!raw) return { error: "Ingresa un handle válido" };
-      if (handles.length >= 5) return { error: "Máximo 5 cuentas" };
-      if (handles.includes(`@${raw}`)) return { error: "Ya la agregaste" };
-      addHandle(`@${raw}`);
-      return {};
-    },
-    {},
-  );
-}
 
 // ---- Components ----
 
@@ -73,17 +47,25 @@ function HandleTag({ handle }: { handle: string }) {
 }
 
 function AddHandleForm() {
-  const handles = useOnboarding((s) => s.handles);
-  const [state, action, pending] = useAddHandle();
+  const { handles, addHandle } = useOnboarding();
+
+  const [error, action, pending] = useActionState(
+    async (_: string | undefined, formData: FormData) => {
+      const raw = (formData.get("handle") as string).trim().replace(/^@/, "");
+      if (!raw) return "Ingresa un handle válido";
+      if (handles.length >= 5) return "Máximo 5 cuentas";
+      if (handles.includes(`@${raw}`)) return "Ya la agregaste";
+      addHandle(`@${raw}`);
+    },
+    undefined,
+  );
 
   if (handles.length >= 5) return null;
 
   return (
     <div className="space-y-2">
       <form action={action} className="flex gap-2">
-        <label htmlFor="handle" className="sr-only">
-          Handle de X
-        </label>
+        <label htmlFor="handle" className="sr-only">Handle de X</label>
         <input
           id="handle"
           name="handle"
@@ -98,14 +80,10 @@ function AddHandleForm() {
           style={{ borderRadius: 14 }}
           aria-label="Agregar cuenta"
         >
-          {pending ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <Plus size={15} />
-          )}
+          {pending ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
         </button>
       </form>
-      {state.error && <p className="text-error text-xs pl-1">{state.error}</p>}
+      {error && <p className="text-error text-xs pl-1">{error}</p>}
     </div>
   );
 }
@@ -113,19 +91,16 @@ function AddHandleForm() {
 function StepAccounts() {
   const handles = useOnboarding((s) => s.handles);
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
+  const [saving, startTransition] = useTransition();
 
-  async function handleFinish() {
-    if (handles.length === 0 || saving) return;
-    setSaving(true);
-    try {
+  function handleFinish() {
+    if (handles.length === 0) return;
+    startTransition(async () => {
       for (const handle of handles) {
         await addAccount({ data: { handle } });
       }
-      navigate({ to: "/feed" });
-    } finally {
-      setSaving(false);
-    }
+      navigate({ to: "/feed" as string });
+    });
   }
 
   return (
@@ -135,16 +110,13 @@ function StepAccounts() {
           ¿A quién quieres seguir?
         </h1>
         <p className="text-sm text-base-content/50 leading-relaxed">
-          Agrega hasta 5 cuentas de X — competidores, referentes, o cualquier
-          cuenta que te importe.
+          Agrega hasta 5 cuentas de X — competidores, referentes, o cualquier cuenta que te importe.
         </p>
       </div>
 
       {handles.length > 0 && (
         <div className="space-y-2">
-          {handles.map((h) => (
-            <HandleTag key={h} handle={h} />
-          ))}
+          {handles.map((h) => <HandleTag key={h} handle={h} />)}
         </div>
       )}
 
@@ -163,10 +135,7 @@ function StepAccounts() {
         {saving ? (
           <Loader2 size={15} className="animate-spin" />
         ) : (
-          <>
-            Ir a mi feed
-            <ArrowRight size={15} />
-          </>
+          <>Ir a mi feed <ArrowRight size={15} /></>
         )}
       </button>
     </div>
@@ -176,13 +145,6 @@ function StepAccounts() {
 // ---- Page ----
 
 function OnboardingPage() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), 50);
-    return () => clearTimeout(t);
-  }, []);
-
   return (
     <>
       <style>{`
@@ -193,19 +155,12 @@ function OnboardingPage() {
       `}</style>
 
       <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 flex items-center justify-center px-4">
-        <div
-          className="w-full max-w-sm transition-all duration-500"
-          style={{
-            opacity: ready ? 1 : 0,
-            transform: ready ? "none" : "translateY(16px)",
-          }}
-        >
+        <div className="w-full max-w-sm animate-[fadeUp_0.5s_ease_both]">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-extrabold text-base-content tracking-tight">
               TweetSip ☕
             </h2>
           </div>
-
           <StepAccounts />
         </div>
       </div>
