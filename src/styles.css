@@ -1,15 +1,47 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 
-body {
-  @apply m-0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+@plugin "daisyui" {
+  themes: tweetsip;
+}
+
+@plugin "daisyui/theme" {
+  name: tweetsip;
+  default: true;
+
+  --color-base-100: #f0f4f8;
+  --color-base-200: #e8ecf0;
+  --color-base-300: #dde3ea;
+  --color-base-content: #1a202c;
+
+  --color-neutral: #1a202c;
+  --color-neutral-content: #ffffff;
+
+  --color-primary: #1a202c;
+  --color-primary-content: #ffffff;
+
+  --color-error: #e53e3e;
+  --color-success: #38a169;
+  --color-warning: #ed8936;
+
+  --radius-btn: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1.25rem;
+  --radius-badge: 1.25rem;
+
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+}
+
+* {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+body {
+  font-family: var(--font-sans);
 }
