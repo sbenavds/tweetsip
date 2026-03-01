@@ -4,8 +4,9 @@ import { magicLink } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@/db/schema";
+import { getResend, sendMagicLink } from "@/lib/email";
 
-export function createAuth(d1: D1Database) {
+export function createAuth(d1: D1Database, resendApiKey?: string) {
   return betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL,
@@ -15,7 +16,12 @@ export function createAuth(d1: D1Database) {
     plugins: [
       magicLink({
         sendMagicLink: async ({ email, url }) => {
-          console.log(`Magic link for ${email}: ${url}`);
+          if (resendApiKey) {
+            await sendMagicLink(getResend(resendApiKey), email, url);
+          } else {
+            // Dev fallback: log to console
+            console.log(`[magic-link] ${email} → ${url}`);
+          }
         },
       }),
       tanstackStartCookies(),
