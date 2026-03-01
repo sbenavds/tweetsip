@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { magicLink } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@/db/schema";
@@ -11,10 +12,14 @@ export function createAuth(d1: D1Database) {
     database: drizzleAdapter(drizzle(d1, { schema }), {
       provider: "sqlite",
     }),
-    emailAndPassword: {
-      enabled: true,
-    },
-    plugins: [tanstackStartCookies()],
+    plugins: [
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          console.log(`Magic link for ${email}: ${url}`);
+        },
+      }),
+      tanstackStartCookies(),
+    ],
   });
 }
 
