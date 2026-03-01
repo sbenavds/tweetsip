@@ -10,6 +10,9 @@
   "vars": {
     "X_BEARER_TOKEN": "",
   },
+  "triggers": {
+    "crons": ["0 8 * * *"],
+  },
   "d1_databases": [
     {
       "binding": "DB",
