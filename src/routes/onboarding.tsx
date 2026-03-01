@@ -6,34 +6,12 @@ import { create } from "zustand";
 import { getDb } from "@/db";
 import { trackedAccounts } from "@/db/schema";
 import { authMiddleware } from "@/middleware";
+import { addAccount } from "@/functions/accounts";
 
 export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
 
-// ---- Server function ----
-
-const saveAccounts = createServerFn({ method: "POST" })
-  .inputValidator((data: { handles: string[] }) => data)
-  .middleware([authMiddleware])
-  .handler(async ({ data, context }) => {
-    const user = context.user;
-    if (!user) throw new Error("Unauthorized");
-
-    const db = getDb(
-      (context as unknown as { cloudflare: { env: Env } }).cloudflare.env.DB,
-    );
-
-    const rows = data.handles.map((handle: string) => ({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      handle,
-      name: handle,
-    }));
-
-    await db.insert(trackedAccounts).values(rows);
-    return { success: true };
-  });
 // ---- Zustand store ----
 
 type OnboardingStore = {
@@ -141,7 +119,9 @@ function StepAccounts() {
     if (handles.length === 0 || saving) return;
     setSaving(true);
     try {
-      await saveAccounts({ data: { handles } });
+      for (const handle of handles) {
+        await addAccount({ data: { handle } });
+      }
       navigate({ to: "/feed" });
     } finally {
       setSaving(false);
