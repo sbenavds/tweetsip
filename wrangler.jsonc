@@ -7,6 +7,9 @@
   "observability": {
     "enabled": true,
   },
+  "vars": {
+    "X_BEARER_TOKEN": "",
+  },
   "d1_databases": [
     {
       "binding": "DB",
