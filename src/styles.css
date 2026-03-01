@@ -2,16 +2,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 
 @plugin "daisyui" {
-  themes: tweetsip;
+  themes: tweetsip, tweetsip-dark;
 }
 
 @plugin "daisyui/theme" {
   name: tweetsip;
   default: true;
 
-  --color-base-100: #f0f4f8;
-  --color-base-200: #e8ecf0;
-  --color-base-300: #dde3ea;
+  --color-base-100: #ffffff;
+  --color-base-200: #f0f4f8;
+  --color-base-300: #e2e8f0;
   --color-base-content: #1a202c;
 
   --color-neutral: #1a202c;
@@ -23,6 +23,34 @@
   --color-error: #e53e3e;
   --color-success: #38a169;
   --color-warning: #ed8936;
+
+  --radius-btn: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1.25rem;
+  --radius-badge: 1.25rem;
+
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: tweetsip-dark;
+  dark: true;
+
+  --color-base-100: #1e2533;
+  --color-base-200: #141925;
+  --color-base-300: #0d1117;
+  --color-base-content: #e2e8f0;
+
+  --color-neutral: #e2e8f0;
+  --color-neutral-content: #1e2533;
+
+  --color-primary: #e2e8f0;
+  --color-primary-content: #1e2533;
+
+  --color-error: #fc8181;
+  --color-success: #68d391;
+  --color-warning: #f6ad55;
 
   --radius-btn: 0.5rem;
   --radius-field: 0.5rem;

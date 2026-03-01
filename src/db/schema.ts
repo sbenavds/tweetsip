@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // ---- Better Auth tables ----
@@ -150,6 +150,21 @@ export const briefings = sqliteTable("briefings", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
 });
+
+// ---- Relations ----
+
+export const trackedAccountsRelations = relations(trackedAccounts, ({ many }) => ({
+  posts: many(posts),
+  briefings: many(briefings),
+}));
+
+export const postsRelations = relations(posts, ({ one }) => ({
+  account: one(trackedAccounts, { fields: [posts.accountId], references: [trackedAccounts.id] }),
+}));
+
+export const briefingsRelations = relations(briefings, ({ one }) => ({
+  account: one(trackedAccounts, { fields: [briefings.accountId], references: [trackedAccounts.id] }),
+}));
 
 export const notifications = sqliteTable("notifications", {
   id: text("id").primaryKey(),
