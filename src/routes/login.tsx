@@ -12,7 +12,7 @@ async function sendMagicLink(_: State, formData: FormData): Promise<State> {
   const email = formData.get("email") as string;
   const { error } = await authClient.signIn.magicLink({
     email,
-    callbackURL: "/onboarding",
+    callbackURL: "/feed",
   });
   if (error) return { sent: false, email, error: error.message };
   return { sent: true, email };
@@ -26,7 +26,7 @@ function LoginPage() {
 
   if (state.sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base-100">
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
         <div className="max-w-sm w-full px-6 text-center">
           <div className="text-4xl mb-6">✉️</div>
           <h1 className="text-2xl font-bold text-base-content mb-3">
@@ -42,7 +42,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-100">
+    <div className="min-h-screen flex items-center justify-center bg-base-200">
       <div className="max-w-sm w-full px-6">
         <div className="text-center mb-10">
           <div className="text-3xl font-extrabold text-base-content tracking-tight mb-2">

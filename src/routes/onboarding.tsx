@@ -3,8 +3,10 @@ import { useActionState, useTransition } from "react";
 import { Plus, X, ArrowRight, Loader2 } from "lucide-react";
 import { create } from "zustand";
 import { addAccount } from "@/functions/accounts";
+import { guardOnboarding } from "@/functions/guards";
 
 export const Route = createFileRoute("/onboarding")({
+  loader: () => guardOnboarding(),
   component: OnboardingPage,
 });
 

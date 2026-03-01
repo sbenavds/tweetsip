@@ -1,0 +1,292 @@
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { getFeed } from "@/functions/feed";
+import type { FeedAccount } from "@/server/feed";
+
+export const Route = createFileRoute("/feed")({
+  loader: async () => {
+    try {
+      return await getFeed();
+    } catch (e) {
+      if (e && typeof e === "object" && "to" in e) throw e;
+      throw redirect({ to: "/login" });
+    }
+  },
+  component: FeedPage,
+});
+
+// ---- Helpers ----
+
+type ThemePref = "tweetsip" | "tweetsip-dark" | "system";
+
+function timeAgo(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 60) return `hace ${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs}h`;
+  return `hace ${Math.floor(hrs / 24)}d`;
+}
+
+function fmtLikes(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+}
+
+function getStatus(score: number | null): "hot" | "pivot" | "silence" {
+  if (!score || score < 30) return "silence";
+  if (score < 65) return "pivot";
+  return "hot";
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  hot: "En movimiento",
+  pivot: "Pivoteando",
+  silence: "Silencio",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  hot: "text-success",
+  pivot: "text-warning",
+  silence: "text-base-content/40",
+};
+
+// ---- Theme hook ----
+
+function useTheme() {
+  const [pref, setPref] = useState<ThemePref>("system");
+
+  useEffect(() => {
+    setPref((localStorage.getItem("theme") as ThemePref) || "system");
+  }, []);
+
+  function cycle() {
+    const next: ThemePref =
+      pref === "tweetsip" ? "tweetsip-dark" : pref === "tweetsip-dark" ? "system" : "tweetsip";
+    setPref(next);
+    localStorage.setItem("theme", next);
+    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolved = next === "system" ? (dark ? "tweetsip-dark" : "tweetsip") : next;
+    document.documentElement.setAttribute("data-theme", resolved);
+  }
+
+  return { pref, cycle };
+}
+
+// ---- Sub-components ----
+
+function ScoreCircle({ score }: { score: number }) {
+  const r = 16;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  const color = score >= 65 ? "#68d391" : score >= 30 ? "#f6ad55" : "#a0aec0";
+
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" className="shrink-0" role="img" aria-label={`Score ${score}`}>
+      <title>Engagement score {score}</title>
+      <circle cx="20" cy="20" r={r} fill="none" stroke="currentColor" strokeWidth="3"
+        className="text-base-300" />
+      <circle cx="20" cy="20" r={r} fill="none" stroke={color} strokeWidth="3"
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        transform="rotate(-90 20 20)" />
+      <text x="20" y="25" textAnchor="middle" fontSize="10" fontWeight="700"
+        fill="currentColor" className="fill-base-content">
+        {score}
+      </text>
+    </svg>
+  );
+}
+
+function StatusBadge({ score }: { score: number | null }) {
+  const s = getStatus(score);
+  return (
+    <span className={`flex items-center gap-1 text-xs font-semibold ${STATUS_COLOR[s]}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      {STATUS_LABEL[s]}
+    </span>
+  );
+}
+
+function Avatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
+  const letter = (name ?? "?")[0].toUpperCase();
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name ?? ""} className="w-11 h-11 rounded-full object-cover" />;
+  }
+  return (
+    <div className="w-11 h-11 rounded-full bg-base-200 flex items-center justify-center text-base-content/60 font-bold text-base">
+      {letter}
+    </div>
+  );
+}
+
+function PostRow({ text, likes }: { text: string; likes: number }) {
+  const truncated = text.length > 60 ? `${text.slice(0, 60)}...` : text;
+  return (
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-base-200 last:border-0">
+      <div className="flex items-start gap-2 min-w-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-base-300 mt-1.5 shrink-0" />
+        <span className="text-xs text-base-content/70 leading-relaxed">{truncated}</span>
+      </div>
+      <span className="text-xs text-base-content/40 shrink-0 font-medium">{fmtLikes(likes)}</span>
+    </div>
+  );
+}
+
+function AccountCard({ account }: { account: FeedAccount }) {
+  const [expanded, setExpanded] = useState(false);
+  const { briefing, posts } = account;
+  const score = briefing?.engagementScore ?? null;
+
+  return (
+    <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
+      <div className="p-5 space-y-4">
+
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Avatar name={account.name} avatarUrl={account.avatarUrl} />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-base-content leading-tight truncate">
+              {account.name ?? account.handle}
+            </p>
+            <p className="text-xs text-base-content/40">{account.handle}</p>
+          </div>
+          <StatusBadge score={score} />
+        </div>
+
+        {briefing ? (
+          <>
+            {/* Moment */}
+            <p className="text-sm text-base-content leading-relaxed">{briefing.moment}</p>
+
+            {/* Top Post */}
+            {briefing.topPostSummary && (
+              <div className="bg-base-200 rounded-xl p-4 flex gap-3">
+                <ScoreCircle score={briefing.engagementScore} />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase mb-1">
+                    Post más fuerte
+                  </p>
+                  <p className="text-xs text-base-content/80 leading-relaxed">
+                    {briefing.topPostSummary}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* For You */}
+            {briefing.forYou && (
+              <div className="bg-base-200/60 rounded-xl p-4 flex gap-2">
+                <span className="text-base-content/40 text-sm mt-0.5">→</span>
+                <p className="text-sm text-base-content/80 leading-relaxed">{briefing.forYou}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-base-content/40 italic">Aún sin briefing — en cola.</p>
+        )}
+      </div>
+
+      {/* Toggle */}
+      {posts.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="w-full py-3 border-t border-base-200 text-xs text-base-content/40 hover:text-base-content/60 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <span>{expanded ? "▲" : "▼"}</span>
+          {expanded ? "cerrar" : "ver últimos posts"}
+        </button>
+      )}
+
+      {/* Expanded posts */}
+      {expanded && posts.length > 0 && (
+        <div className="px-5 pb-4 border-t border-base-200">
+          <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase py-3">
+            Últimos {posts.length} posts
+          </p>
+          {posts.map((p) => <PostRow key={p.id} text={p.text} likes={p.likes} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Page ----
+
+const THEME_ICON: Record<ThemePref, React.ReactNode> = {
+  tweetsip: <Sun size={15} />,
+  "tweetsip-dark": <Moon size={15} />,
+  system: <Monitor size={15} />,
+};
+
+function FeedPage() {
+  const accounts: FeedAccount[] = Route.useLoaderData() ?? [];
+  const { pref, cycle } = useTheme();
+
+  const latestUpdate = accounts
+    .map((a) => a.briefing?.generatedAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  const hotCount = accounts.filter((a) => getStatus(a.briefing?.engagementScore ?? null) === "hot").length;
+  const gapsCount = accounts.filter((a) => getStatus(a.briefing?.engagementScore ?? null) === "silence").length;
+
+  const topInsight = accounts
+    .filter((a) => a.briefing?.forYou)
+    .sort((a, b) => (b.briefing?.engagementScore ?? 0) - (a.briefing?.engagementScore ?? 0))
+    .at(0)?.briefing?.forYou;
+
+  return (
+    <div className="min-h-screen bg-base-200">
+      <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
+
+        {/* Header */}
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h1 className="text-2xl font-extrabold text-base-content tracking-tight">TweetSip</h1>
+            <p className="text-xs text-base-content/40 mt-0.5">
+              {accounts.length} {accounts.length === 1 ? "competidor" : "competidores"}
+              {latestUpdate ? ` · actualizado ${timeAgo(latestUpdate)}` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hotCount > 0 && (
+              <span className="badge badge-sm font-bold text-error border-error/30 bg-error/10">
+                {hotCount} HOT
+              </span>
+            )}
+            {gapsCount > 0 && (
+              <span className="badge badge-sm font-bold text-success border-success/30 bg-success/10">
+                {gapsCount} GAPS
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={cycle}
+              className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
+              aria-label="Cambiar tema"
+            >
+              {THEME_ICON[pref]}
+            </button>
+          </div>
+        </div>
+
+        {/* Global insight */}
+        {topInsight && (
+          <div className="bg-base-100 rounded-box border border-base-200 px-4 py-3">
+            <p className="text-sm text-base-content/60 italic">◇ {topInsight}</p>
+          </div>
+        )}
+
+        {/* Cards */}
+        {accounts.length === 0 ? (
+          <div className="text-center py-20 text-base-content/30 text-sm">
+            Aún no tienes cuentas. <a href="/onboarding" className="underline">Agrega una.</a>
+          </div>
+        ) : (
+          accounts.map((account) => <AccountCard key={account.id} account={account} />)
+        )}
+      </div>
+    </div>
+  );
+}
