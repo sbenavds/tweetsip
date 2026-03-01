@@ -1,6 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import { getFeed } from "@/functions/feed";
 import type { FeedAccount } from "@/server/feed";
 
@@ -264,10 +264,17 @@ function FeedPage() {
               type="button"
               onClick={cycle}
               className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
-              aria-label="Cambiar tema"
+              aria-label="Toggle theme"
             >
               {THEME_ICON[pref]}
             </button>
+            <Link
+              to="/settings"
+              className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
+              aria-label="Settings"
+            >
+              <Settings size={15} />
+            </Link>
           </div>
         </div>
 
