@@ -3,7 +3,7 @@ import type { DrizzleD1Database } from "drizzle-orm/d1";
 import type * as schema from "@/db/schema";
 import { notifications, trackedAccounts, user } from "@/db/schema";
 import { enqueue } from "@/lib/queue";
-import { getResend, sendDailyDigest, sendStrongSignal } from "@/lib/email";
+import { getResend, sendDailyDigest, sendSilenceAlert, sendStrongSignal } from "@/lib/email";
 import type { DigestAccount } from "@/lib/email";
 
 type Db = DrizzleD1Database<typeof schema>;
@@ -141,5 +141,43 @@ export async function sendStrongSignalNotification(
     userId,
     accountId,
     type: "strong_signal",
+  });
+}
+
+export async function sendSilenceAlertNotification(
+  db: Db,
+  resendApiKey: string,
+  appUrl: string,
+  userId: string,
+  accountId: string,
+): Promise<void> {
+  // Duplicate guard: silence alert fires once per silence period (reset when account posts again)
+  const alreadySent = await db.query.notifications.findFirst({
+    where: and(
+      eq(notifications.userId, userId),
+      eq(notifications.accountId, accountId),
+      eq(notifications.type, "silence_alert"),
+      gte(notifications.sentAt, todayUTC()),
+    ),
+  });
+  if (alreadySent) return;
+
+  const [profile, account] = await Promise.all([
+    db.query.user.findFirst({ where: eq(user.id, userId), columns: { email: true } }),
+    db.query.trackedAccounts.findFirst({
+      where: eq(trackedAccounts.id, accountId),
+      columns: { handle: true },
+    }),
+  ]);
+
+  if (!profile || !account) return;
+
+  await sendSilenceAlert(getResend(resendApiKey), profile.email, account.handle, 48, appUrl);
+
+  await db.insert(notifications).values({
+    id: crypto.randomUUID(),
+    userId,
+    accountId,
+    type: "silence_alert",
   });
 }

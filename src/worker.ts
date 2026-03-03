@@ -5,7 +5,7 @@ import { posts, trackedAccounts } from "@/db/schema";
 import { AccountMonitor } from "@/lib/account-monitor";
 import { enqueue, queueMessageSchema } from "@/lib/queue";
 import { generateBriefing } from "@/server/briefting";
-import { enqueueDailyDigests, sendDigest, sendStrongSignalNotification } from "@/server/notifications";
+import { enqueueDailyDigests, sendDigest, sendSilenceAlertNotification, sendStrongSignalNotification } from "@/server/notifications";
 import { syncAccountPosts } from "@/server/posts";
 import { enqueueAllAccountFetches } from "@/server/scheduler";
 
@@ -60,7 +60,11 @@ export default {
 
           if (latest?.postedAt) {
             const id = env.ACCOUNT_MONITOR.idFromName(payload.accountId);
-            await env.ACCOUNT_MONITOR.get(id).recordPosts(latest.postedAt.getTime());
+            await env.ACCOUNT_MONITOR.get(id).recordPosts(
+              account.userId,
+              payload.accountId,
+              latest.postedAt.getTime(),
+            );
           }
 
           // Enqueue strong signal alert if latest post engagement exceeds 3x account average
@@ -85,6 +89,14 @@ export default {
             await sendDigest(db, env.RESEND_API_KEY, env.BETTER_AUTH_URL, payload.userId);
           } else if (payload.notificationType === "strong_signal" && payload.accountId) {
             await sendStrongSignalNotification(
+              db,
+              env.RESEND_API_KEY,
+              env.BETTER_AUTH_URL,
+              payload.userId,
+              payload.accountId,
+            );
+          } else if (payload.notificationType === "silence_alert" && payload.accountId) {
+            await sendSilenceAlertNotification(
               db,
               env.RESEND_API_KEY,
               env.BETTER_AUTH_URL,
