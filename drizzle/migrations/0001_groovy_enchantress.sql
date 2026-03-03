@@ -1,0 +1,1 @@
+ALTER TABLE `notifications` ADD `account_id` text REFERENCES tracked_accounts(id);

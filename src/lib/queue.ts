@@ -11,11 +11,8 @@ const jobSchemas = {
   }),
   SEND_NOTIFICATION: z.object({
     userId: z.string(),
-    notificationType: z.enum([
-      "daily_digest",
-      "strong_signal",
-      "silence_alert",
-    ]),
+    notificationType: z.enum(["daily_digest", "strong_signal", "silence_alert"]),
+    accountId: z.string().optional(),
   }),
 } as const;
 

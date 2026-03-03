@@ -171,6 +171,7 @@ export const notifications = sqliteTable("notifications", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
+  accountId: text("account_id").references(() => trackedAccounts.id, { onDelete: "cascade" }),
   type: text("type", {
     enum: ["daily_digest", "strong_signal", "silence_alert"],
   }).notNull(),

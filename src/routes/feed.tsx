@@ -1,8 +1,10 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Monitor, Moon, Settings, Sun } from "lucide-react";
 import { getFeed } from "@/functions/feed";
 import type { FeedAccount } from "@/server/feed";
+import { useThemeStore } from "@/lib/store";
+import type { ThemePref } from "@/lib/store";
 
 export const Route = createFileRoute("/feed")({
   loader: async () => {
@@ -17,8 +19,6 @@ export const Route = createFileRoute("/feed")({
 });
 
 // ---- Helpers ----
-
-type ThemePref = "tweetsip" | "tweetsip-dark" | "system";
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -49,28 +49,6 @@ const STATUS_COLOR: Record<string, string> = {
   pivot: "text-warning",
   silence: "text-base-content/40",
 };
-
-// ---- Theme hook ----
-
-function useTheme() {
-  const [pref, setPref] = useState<ThemePref>("system");
-
-  useEffect(() => {
-    setPref((localStorage.getItem("theme") as ThemePref) || "system");
-  }, []);
-
-  function cycle() {
-    const next: ThemePref =
-      pref === "tweetsip" ? "tweetsip-dark" : pref === "tweetsip-dark" ? "system" : "tweetsip";
-    setPref(next);
-    localStorage.setItem("theme", next);
-    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolved = next === "system" ? (dark ? "tweetsip-dark" : "tweetsip") : next;
-    document.documentElement.setAttribute("data-theme", resolved);
-  }
-
-  return { pref, cycle };
-}
 
 // ---- Sub-components ----
 
@@ -220,7 +198,7 @@ const THEME_ICON: Record<ThemePref, React.ReactNode> = {
 
 function FeedPage() {
   const accounts: FeedAccount[] = Route.useLoaderData() ?? [];
-  const { pref, cycle } = useTheme();
+  const { pref, cycle } = useThemeStore();
 
   const latestUpdate = accounts
     .map((a) => a.briefing?.generatedAt)
