@@ -3,7 +3,7 @@ import type { DrizzleD1Database } from "drizzle-orm/d1";
 import type * as schema from "@/db/schema";
 import { notifications, trackedAccounts, user } from "@/db/schema";
 import { enqueue } from "@/lib/queue";
-import { getResend, sendDailyDigest } from "@/lib/email";
+import { getResend, sendDailyDigest, sendStrongSignal } from "@/lib/email";
 import type { DigestAccount } from "@/lib/email";
 
 type Db = DrizzleD1Database<typeof schema>;
@@ -97,5 +97,49 @@ export async function sendDigest(db: Db, resendApiKey: string, appUrl: string, u
     id: crypto.randomUUID(),
     userId,
     type: "daily_digest",
+  });
+}
+
+export async function sendStrongSignalNotification(
+  db: Db,
+  resendApiKey: string,
+  appUrl: string,
+  userId: string,
+  accountId: string,
+): Promise<void> {
+  // Duplicate guard: max 1 strong_signal per account per day
+  const alreadySent = await db.query.notifications.findFirst({
+    where: and(
+      eq(notifications.userId, userId),
+      eq(notifications.accountId, accountId),
+      eq(notifications.type, "strong_signal"),
+      gte(notifications.sentAt, todayUTC()),
+    ),
+  });
+  if (alreadySent) return;
+
+  const [profile, account] = await Promise.all([
+    db.query.user.findFirst({ where: eq(user.id, userId), columns: { email: true } }),
+    db.query.trackedAccounts.findFirst({
+      where: eq(trackedAccounts.id, accountId),
+      with: { briefings: { orderBy: (b, { desc }) => [desc(b.generatedAt)], limit: 1 } },
+    }),
+  ]);
+
+  if (!profile || !account?.briefings[0]?.moment) return;
+
+  await sendStrongSignal(
+    getResend(resendApiKey),
+    profile.email,
+    account.handle,
+    account.briefings[0].moment,
+    appUrl,
+  );
+
+  await db.insert(notifications).values({
+    id: crypto.randomUUID(),
+    userId,
+    accountId,
+    type: "strong_signal",
   });
 }
