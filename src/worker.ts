@@ -5,6 +5,7 @@ import { posts, trackedAccounts } from "@/db/schema";
 import { AccountMonitor } from "@/lib/account-monitor";
 import { enqueue, queueMessageSchema } from "@/lib/queue";
 import { generateBriefing } from "@/server/briefting";
+import { enqueueDailyDigests, sendDigest } from "@/server/notifications";
 import { syncAccountPosts } from "@/server/posts";
 import { enqueueAllAccountFetches } from "@/server/scheduler";
 
@@ -13,9 +14,13 @@ export { AccountMonitor };
 export default {
   fetch: server.fetch.bind(server),
 
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const db = getDb(env.DB);
-    ctx.waitUntil(enqueueAllAccountFetches(db, env.QUEUE));
+    if (event.cron === "0 8 * * *") {
+      ctx.waitUntil(enqueueAllAccountFetches(db, env.QUEUE));
+    } else if (event.cron === "0 * * * *") {
+      ctx.waitUntil(enqueueDailyDigests(db, env.QUEUE));
+    }
   },
 
   async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
@@ -58,6 +63,10 @@ export default {
           });
         } else if (type === "GENERATE_BRIEFING") {
           await generateBriefing(db, env, payload.accountId, payload.userId);
+        } else if (type === "SEND_NOTIFICATION") {
+          if (payload.notificationType === "daily_digest") {
+            await sendDigest(db, env.RESEND_API_KEY, env.BETTER_AUTH_URL, payload.userId);
+          }
         }
 
         msg.ack();
