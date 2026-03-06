@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react";
 import { getFeed } from "@/functions/feed";
 import { triggerFetch } from "@/functions/scheduler";
@@ -203,20 +203,45 @@ function FeedPage() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [queued, setQueued] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const snapshotRef = useRef<{ briefingCount: number; latestAt: string | undefined }>({
+    briefingCount: 0,
+    latestAt: undefined,
+  });
+
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    setQueued(false);
+  }
 
   async function handleRefresh() {
     setRefreshing(true);
     try {
       await triggerFetch();
-      setQueued(true);
-      setTimeout(() => {
-        router.invalidate();
-        setQueued(false);
-      }, 4000);
     } finally {
       setRefreshing(false);
     }
+    snapshotRef.current = {
+      briefingCount: accounts.filter((a) => a.briefing).length,
+      latestAt: latestUpdate,
+    };
+    setQueued(true);
+    pollRef.current = setInterval(() => router.invalidate(), 3000);
+    setTimeout(stopPolling, 30000);
   }
+
+  // Stop polling once briefings actually update
+  useEffect(() => {
+    if (!queued) return;
+    const newCount = accounts.filter((a) => a.briefing).length;
+    const newLatest = accounts.map((a) => a.briefing?.generatedAt).filter(Boolean).sort().at(-1);
+    if (newCount > snapshotRef.current.briefingCount || newLatest !== snapshotRef.current.latestAt) {
+      stopPolling();
+    }
+  }, [accounts, queued]);
 
   const latestUpdate = accounts
     .map((a) => a.briefing?.generatedAt)

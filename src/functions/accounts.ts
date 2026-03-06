@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getDb } from "@/db";
 import { authMiddleware } from "@/middleware";
+import { enqueue } from "@/lib/queue";
 import {
   findAccountsByUser,
   insertAccount,
@@ -24,10 +25,11 @@ export const addAccount = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const user = context.user;
     if (!user) throw new Error("Unauthorized");
-    const db = getDb(
-      (context as unknown as { cloudflare: { env: Env } }).cloudflare.env.DB,
-    );
-    return insertAccount(db, user.id, data.handle);
+    const env = (context as unknown as { cloudflare: { env: Env } }).cloudflare.env;
+    const db = getDb(env.DB);
+    const account = await insertAccount(db, user.id, data.handle);
+    await enqueue.fetchAccount(env.QUEUE, { accountId: account.id, handle: account.handle });
+    return account;
   });
 
 export const deleteAccount = createServerFn({ method: "POST" })

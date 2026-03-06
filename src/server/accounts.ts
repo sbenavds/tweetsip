@@ -14,11 +14,11 @@ export async function findAccountsByUser(db: Db, userId: string) {
 
 export async function insertAccount(db: Db, userId: string, handle: string) {
   const existing = await findAccountsByUser(db, userId);
-  if (existing.length >= 5) throw new Error("Máximo 5 cuentas");
+  if (existing.length >= 5) throw new Error("Maximum 5 accounts");
 
   const clean = handle.trim().replace(/^@/, "");
   const duplicate = existing.find((a) => a.handle === `@${clean}`);
-  if (duplicate) throw new Error("Ya estás siguiendo esta cuenta");
+  if (duplicate) throw new Error("Already tracking this account");
 
   const [account] = await db
     .insert(trackedAccounts)
