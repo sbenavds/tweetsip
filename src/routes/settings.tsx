@@ -129,19 +129,33 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleting, startDelete] = useTransition()
 
-  const [optimisticAccounts, addOptimistic] = useOptimistic(accounts, (state, handle: string) => [
-    ...state,
-    { id: `optimistic-${handle}`, handle: `@${handle}`, name: handle, avatarUrl: null },
-  ])
+  // Accounts confirmed by the server but not yet in loader data.
+  // Persists across useOptimistic reversion so there's never a visible gap.
+  const [confirmedAdds, setConfirmedAdds] = useState<UserSettings["accounts"]>([])
+  const displayAccounts = [
+    ...accounts,
+    ...confirmedAdds.filter((c) => !accounts.some((a) => a.handle === c.handle)),
+  ]
+
+  const [optimisticAccounts, addOptimistic] = useOptimistic(
+    displayAccounts,
+    (state, handle: string) => [
+      ...state,
+      { id: `optimistic-${handle}`, handle: `@${handle}`, name: handle, avatarUrl: null },
+    ]
+  )
 
   const [addState, addAction, addPending] = useActionState(
     async (_: string | undefined, formData: FormData) => {
       const raw = (formData.get("handle") as string).trim().replace(/^@/, "")
       if (!raw) return "Enter a valid handle"
-      if (accounts.length >= 5) return "Maximum 5 accounts"
+      if (displayAccounts.length >= 5) return "Maximum 5 accounts"
       try {
         addOptimistic(raw)
-        await addAccount({ data: { handle: raw } })
+        const account = await addAccount({ data: { handle: raw } })
+        // Persist immediately so the list never flashes back to the pre-add state
+        // while router.invalidate() refetches in the background.
+        setConfirmedAdds((prev) => [...prev, account])
         router.invalidate()
         queryClient.invalidateQueries({ queryKey: ["feed"] })
       } catch (e) {

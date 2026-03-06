@@ -298,7 +298,7 @@ function AvatarStrip({
           )
         })}
 
-        <div className="w-px h-5 bg-base-content/[0.10] self-center mx-1 shrink-0" />
+        <div className="w-px h-8 bg-base-content/[0.10] self-start mx-1 shrink-0" />
 
         <Link to="/settings" className="shrink-0 self-start group" aria-label="Add account">
           <div className="avatar avatar-placeholder">
