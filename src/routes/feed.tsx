@@ -264,18 +264,18 @@ function AccountCard({ account }: { account: FeedAccount }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="w-full py-3 border-t border-base-200 text-xs text-base-content/40 hover:text-base-content/60 transition-colors flex items-center justify-center gap-1.5"
+          className="w-full px-5 py-3 border-t border-base-200 text-xs text-base-content/40 hover:text-base-content/60 transition-colors flex items-center justify-between"
         >
-          {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          {expanded ? "close" : "view latest posts"}
+          <span className="font-bold uppercase tracking-widest">{posts.length} posts</span>
+          <span className="flex items-center gap-1">
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            {expanded ? "close" : "view"}
+          </span>
         </button>
       )}
 
       {expanded && posts.length > 0 && (
-        <div className="px-5 pb-4 border-t border-base-200">
-          <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase py-3">
-            Latest {posts.length} posts
-          </p>
+        <div className="px-5 pb-4">
           {posts.map((p) => (
             <PostRow key={p.id} text={p.text} likes={p.likes} />
           ))}
