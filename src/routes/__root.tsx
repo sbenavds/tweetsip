@@ -5,7 +5,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 
 import appCss from "../styles.css?url"
 
-const themeScript = `(function(){var t=localStorage.getItem('theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'tweetsip-dark':'tweetsip'):t;document.documentElement.setAttribute('data-theme',d)})()`
+const themeScript = `(function(){try{var r=localStorage.getItem('theme');var p=r?JSON.parse(r).state.pref:'system';var d=p==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'tweetsip-dark':'tweetsip'):p;document.documentElement.setAttribute('data-theme',d)}catch(e){document.documentElement.setAttribute('data-theme','tweetsip')}})()`
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,7 +36,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="tweetsip" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: theme init prevents flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
