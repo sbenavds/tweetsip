@@ -6,6 +6,7 @@ import { trackedAccounts } from "@/db/schema"
 type Db = DrizzleD1Database<typeof schema>
 
 type Sentiment = { positive: number; neutral: number; negative: number }
+type Highlight = { emoji: string; text: string; tone: "positive" | "notable" | "warning" }
 
 export async function getFeedAccounts(db: Db, userId: string) {
   const accounts = await db.query.trackedAccounts.findMany({
@@ -40,6 +41,7 @@ export async function getFeedAccounts(db: Db, userId: string) {
             mood: b.mood ?? null,
             sentiment: b.sentiment ? (JSON.parse(b.sentiment) as Sentiment) : null,
             themes: b.themes ? (JSON.parse(b.themes) as string[]) : null,
+            highlights: b.highlights ? (JSON.parse(b.highlights) as Highlight[]) : null,
           }
         : null,
       posts: a.posts.map((p) => ({

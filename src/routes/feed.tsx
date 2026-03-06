@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
-import { Monitor, Moon, Plus, RefreshCw, Settings, Sun } from "lucide-react"
+import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 import { getFeed } from "@/functions/feed"
 import { triggerFetch } from "@/functions/scheduler"
@@ -24,6 +24,12 @@ export const Route = createFileRoute("/feed")({
   component: FeedPage,
 })
 
+// ---- Types ----
+
+type ViewState = { type: "sip"; filterId: string | null } | { type: "insights"; accountId: string }
+
+type Highlight = { emoji: string; text: string; tone: "positive" | "notable" | "warning" }
+
 // ---- Helpers ----
 
 function timeAgo(iso: string): string {
@@ -40,173 +46,172 @@ function fmtNum(n: number): string {
   return String(n)
 }
 
-// ---- Skeletons ----
-
-function AIBriefSkeleton() {
-  return (
-    <div className="animate-pulse space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="h-2.5 bg-base-300 rounded w-24" />
-        <div className="h-5 bg-base-300 rounded-full w-20" />
-      </div>
-      <div className="space-y-2">
-        <div className="h-4 bg-base-300 rounded w-full" />
-        <div className="h-4 bg-base-300 rounded w-5/6" />
-        <div className="h-4 bg-base-300 rounded w-4/5" />
-      </div>
-    </div>
-  )
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return "Good morning."
+  if (h < 17) return "Good afternoon."
+  return "Good evening."
 }
 
-function FeedSkeleton() {
-  return (
-    <div className="min-h-screen bg-base-200">
-      <div className="max-w-xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6 animate-pulse">
-          <div className="space-y-1.5">
-            <div className="h-6 bg-base-300 rounded w-24" />
-            <div className="h-3 bg-base-300 rounded w-32" />
-          </div>
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="w-8 h-8 bg-base-300 rounded-lg" />
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2 mb-4 animate-pulse">
-          <div className="h-12 bg-base-300 rounded-2xl w-36" />
-          <div className="h-12 bg-base-300 rounded-2xl w-36" />
-          <div className="w-10 h-10 bg-base-300 rounded-2xl" />
-        </div>
-        <div className="space-y-3 animate-pulse">
-          <div className="bg-base-100 rounded-box border border-base-200 p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="h-2.5 bg-base-300 rounded w-24" />
-              <div className="h-5 bg-base-300 rounded-full w-20" />
-            </div>
-            <div className="space-y-2">
-              <div className="h-4 bg-base-300 rounded w-full" />
-              <div className="h-4 bg-base-300 rounded w-5/6" />
-              <div className="h-4 bg-base-300 rounded w-4/5" />
-            </div>
-          </div>
-          <div className="bg-base-100 rounded-box border border-base-200 p-4 flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-base-300 shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3 bg-base-300 rounded w-full" />
-              <div className="h-3 bg-base-300 rounded w-3/4" />
-            </div>
-          </div>
-          <div className="bg-base-100 rounded-box border border-base-200 overflow-hidden">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="px-5 py-3.5 border-b border-base-200 last:border-0 flex justify-between gap-4"
-              >
-                <div className="h-3 bg-base-300 rounded flex-1" />
-                <div className="h-3 bg-base-300 rounded w-10 shrink-0" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+function dateLabel(): string {
+  return new Date()
+    .toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+    .toUpperCase()
 }
 
-// ---- Sub-components ----
+const AVATAR_PALETTE = [
+  "#1d4ed8",
+  "#dc2626",
+  "#16a34a",
+  "#7c3aed",
+  "#065f46",
+  "#0891b2",
+  "#b45309",
+  "#be185d",
+]
 
-function ScoreCircle({ score }: { score: number }) {
-  const r = 16
-  const circ = 2 * Math.PI * r
-  const dash = (score / 100) * circ
-  const color = score >= 65 ? "#68d391" : score >= 30 ? "#f6ad55" : "#a0aec0"
-
-  return (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 40 40"
-      className="shrink-0"
-      role="img"
-      aria-label={`Score ${score}`}
-    >
-      <title>Engagement score {score}</title>
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        className="text-base-300"
-      />
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth="3"
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-        transform="rotate(-90 20 20)"
-      />
-      <text
-        x="20"
-        y="25"
-        textAnchor="middle"
-        fontSize="10"
-        fontWeight="700"
-        fill="currentColor"
-        className="fill-base-content"
-      >
-        {score}
-      </text>
-    </svg>
-  )
+function avatarColor(handle: string): string {
+  let h = 0
+  for (const c of handle) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length]
 }
 
-function Avatar({
-  name,
-  avatarUrl,
-  size = "md",
-}: {
-  name: string | null
-  avatarUrl: string | null
-  size?: "sm" | "md"
-}) {
-  const letter = (name ?? "?")[0].toUpperCase()
-  const cls = size === "sm" ? "w-8 h-8 text-xs" : "w-12 h-12 text-base"
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt={name ?? ""} className={`${cls} rounded-full object-cover`} />
+function todaysThread(accounts: FeedAccount[]): string | null {
+  const withBriefings = accounts.filter((a) => a.briefing)
+  if (withBriefings.length === 0) return null
+  const themes = withBriefings
+    .flatMap((a) => a.briefing?.themes ?? [])
+    .filter(Boolean)
+    .slice(0, 4)
+  if (themes.length >= 2) {
+    return `${withBriefings.length} ${withBriefings.length === 1 ? "account" : "accounts"} covered today. Topics span: ${themes.join(", ")}.`
   }
-  return (
+  return withBriefings[0].briefing?.moment ?? null
+}
+
+// ---- Avatar component ----
+
+function AccountAvatar({
+  account,
+  size,
+  selected = false,
+}: {
+  account: FeedAccount
+  size: number
+  selected?: boolean
+}) {
+  const letter = (account.name ?? account.handle)[0].toUpperCase()
+  const color = avatarColor(account.handle)
+  const img = account.avatarUrl ? (
+    <img
+      src={account.avatarUrl}
+      alt=""
+      style={{ width: size, height: size, borderRadius: "50%", display: "block" }}
+    />
+  ) : (
     <div
-      className={`${cls} rounded-full bg-base-200 flex items-center justify-center text-base-content/50 font-bold`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: 700,
+        fontSize: size * 0.38,
+        flexShrink: 0,
+        lineHeight: 1,
+      }}
     >
       {letter}
     </div>
   )
+
+  if (!selected) return img
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        borderRadius: "0.625rem",
+        padding: 3,
+        border: "2px solid var(--color-base-content)",
+      }}
+    >
+      {img}
+    </div>
+  )
 }
 
-function SentimentBar({
-  sentiment,
-}: {
-  sentiment: { positive: number; neutral: number; negative: number }
-}) {
-  const { positive, neutral, negative } = sentiment
+// ---- Skeletons ----
+
+function FeedSkeleton() {
   return (
-    <div className="space-y-1.5">
-      <div className="flex h-1 rounded-full overflow-hidden gap-px">
-        {positive > 0 && <div className="bg-success" style={{ width: `${positive}%` }} />}
-        {neutral > 0 && <div className="bg-base-content/20" style={{ width: `${neutral}%` }} />}
-        {negative > 0 && <div className="bg-error/60" style={{ width: `${negative}%` }} />}
+    <div className="min-h-screen bg-base-200">
+      <div className="max-w-2xl mx-auto px-5 pt-24 pb-10 animate-pulse space-y-5">
+        <div className="h-3 bg-base-300 rounded w-40" />
+        <div className="h-9 bg-base-300 rounded w-52" />
+        <div className="h-20 bg-white rounded-2xl" />
+        <div className="bg-white rounded-2xl h-48" />
+        {[0, 1].map((i) => (
+          <div key={i} className="bg-white rounded-2xl p-5 space-y-2">
+            <div className="h-3 bg-base-300 rounded w-28" />
+            <div className="h-3 bg-base-300 rounded w-full" />
+            <div className="h-3 bg-base-300 rounded w-4/5" />
+          </div>
+        ))}
       </div>
-      <div className="flex gap-3 text-[11px] text-base-content/35">
-        {positive > 0 && <span>{positive}% pos</span>}
-        {neutral > 0 && <span>{neutral}% neu</span>}
-        {negative > 0 && <span>{negative}% neg</span>}
+    </div>
+  )
+}
+
+// ---- Top bar ----
+
+const THEME_ICON: Record<ThemePref, React.ReactNode> = {
+  tweetsip: <Sun size={16} />,
+  "tweetsip-dark": <Moon size={16} />,
+  system: <Monitor size={16} />,
+}
+
+function TopBar({
+  scanning,
+  isFetching,
+  onRefresh,
+}: {
+  scanning: boolean
+  isFetching: boolean
+  onRefresh: () => void
+}) {
+  const { pref, cycle } = useThemeStore()
+  return (
+    <div className="flex items-center justify-between py-4 px-5">
+      <span className="text-xl font-bold tracking-tight text-base-content">TweetSip</span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={scanning}
+          className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
+          aria-label="Refresh"
+        >
+          <RefreshCw size={15} className={scanning || isFetching ? "animate-spin" : ""} />
+        </button>
+        <button
+          type="button"
+          onClick={cycle}
+          className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
+          aria-label="Toggle theme"
+        >
+          {THEME_ICON[pref]}
+        </button>
+        <Link
+          to="/settings"
+          className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
+          aria-label="Settings"
+        >
+          <Settings size={15} />
+        </Link>
       </div>
     </div>
   )
@@ -216,163 +221,307 @@ function SentimentBar({
 
 function TabBar({
   accounts,
-  selectedId,
-  onSelect,
+  view,
+  onSip,
 }: {
   accounts: FeedAccount[]
-  selectedId: string | null
-  onSelect: (id: string) => void
+  view: ViewState
+  onSip: () => void
+}) {
+  const insightsAccount =
+    view.type === "insights" ? accounts.find((a) => a.id === view.accountId) : null
+
+  return (
+    <div className="flex items-end px-5 border-b border-base-content/[0.08]">
+      {/* The Sip tab */}
+      <button
+        type="button"
+        onClick={onSip}
+        className={`flex items-center gap-2 pb-3 mr-6 text-sm font-semibold transition-colors ${
+          view.type === "sip"
+            ? "text-base-content border-b-2 border-base-content -mb-px"
+            : "text-base-content/30"
+        }`}
+      >
+        ☕ The Sip
+        <span className="bg-base-content text-base-100 text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">
+          {accounts.length}
+        </span>
+      </button>
+
+      {/* Account tab — only when in insights view */}
+      {insightsAccount && (
+        <div className="flex items-center gap-2 pb-3 text-sm font-semibold text-base-content border-b-2 border-base-content -mb-px">
+          <AccountAvatar account={insightsAccount} size={20} />
+          <span>@{insightsAccount.handle}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---- Sip View ----
+
+function AvatarStrip({
+  accounts,
+  filterId,
+  onFilter,
+}: {
+  accounts: FeedAccount[]
+  filterId: string | null
+  onFilter: (id: string | null) => void
 }) {
   return (
-    <div
-      className="flex items-center gap-2 overflow-x-auto pb-1"
-      style={{ scrollbarWidth: "none" }}
-    >
-      {accounts.map((account) => {
-        const active = account.id === selectedId
+    <div className="flex items-start gap-3 p-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      {/* All button */}
+      <button
+        type="button"
+        onClick={() => onFilter(null)}
+        className={`flex flex-col items-center gap-1 shrink-0 transition-colors`}
+      >
+        <div
+          className={`px-4 h-11 rounded-lg text-sm font-semibold flex items-center transition-colors ${
+            filterId === null
+              ? "bg-base-content text-base-100"
+              : "bg-base-300/60 text-base-content/40"
+          }`}
+        >
+          All
+        </div>
+      </button>
+
+      {/* Account avatars */}
+      {accounts.map((a) => {
+        const active = filterId === a.id
         return (
           <button
-            key={account.id}
+            key={a.id}
             type="button"
-            onClick={() => onSelect(account.id)}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-colors shrink-0 ${
-              active ? "bg-base-100 border border-base-200 shadow-sm" : "hover:bg-base-100/50"
-            }`}
+            onClick={() => onFilter(a.id)}
+            className="flex flex-col items-center gap-1.5 shrink-0"
           >
-            <Avatar name={account.name} avatarUrl={account.avatarUrl} size="sm" />
-            <div className="text-left">
-              <p
-                className={`text-xs font-semibold leading-tight ${active ? "text-base-content" : "text-base-content/40"}`}
-              >
-                {account.name ?? account.handle}
-              </p>
-              <p
-                className={`text-[10px] leading-tight ${active ? "text-base-content/40" : "text-base-content/25"}`}
-              >
-                {account.handle}
-              </p>
+            <div className={active ? "" : "opacity-30"}>
+              <AccountAvatar account={a} size={44} selected={active} />
             </div>
+            <span
+              className={`text-[10px] font-medium max-w-[52px] truncate ${active ? "text-base-content" : "text-base-content/40"}`}
+            >
+              {a.handle}
+            </span>
           </button>
         )
       })}
+
+      {/* Add account */}
       <Link
         to="/settings"
-        className="flex items-center justify-center w-10 h-10 rounded-2xl border border-dashed border-base-content/20 text-base-content/30 hover:text-base-content/50 hover:border-base-content/30 transition-colors shrink-0"
+        className="flex flex-col items-center gap-1.5 shrink-0"
         aria-label="Add account"
       >
-        <Plus size={14} />
+        <div className="w-11 h-11 rounded-full border-2 border-dashed border-base-content/15 flex items-center justify-center text-base-content/25 text-lg leading-none">
+          +
+        </div>
       </Link>
     </div>
   )
 }
 
-// ---- Account view ----
-
-const POSTS_PER_PAGE = 5
-
-function AccountView({ account, scanning }: { account: FeedAccount; scanning: boolean }) {
-  const [page, setPage] = useState(0)
-  const { briefing, posts } = account
-  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
-  const pagePosts = posts.slice(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE)
+function SipView({
+  accounts,
+  filterId,
+  onFilter,
+  onReadThread,
+}: {
+  accounts: FeedAccount[]
+  filterId: string | null
+  onFilter: (id: string | null) => void
+  onReadThread: (id: string) => void
+}) {
+  const visible = filterId ? accounts.filter((a) => a.id === filterId) : accounts
+  const thread = todaysThread(accounts)
 
   return (
-    <div className="space-y-3">
-      {/* AI Brief */}
-      <div className="bg-base-100 rounded-box border border-base-200 p-5">
-        {briefing ? (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <span
-                className={`flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary transition-opacity ${scanning ? "opacity-50" : ""}`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full bg-primary ${scanning ? "animate-pulse" : ""}`}
-                />
-                AI Brief · Today
-              </span>
-              {briefing.mood && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-widest bg-base-200 text-base-content/50">
-                  {briefing.mood}
-                </span>
-              )}
-            </div>
-            <p className="text-base font-semibold text-base-content leading-relaxed">
-              {briefing.moment}
-            </p>
-          </>
-        ) : (
-          <AIBriefSkeleton />
-        )}
+    <div className="space-y-4">
+      {/* Date + greeting */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35 mb-2">
+          {dateLabel()} · Daily Sip
+        </p>
+        <h2 className="text-3xl font-bold tracking-tight text-base-content">{greeting()} ☕</h2>
       </div>
 
-      {/* Score + top post reason */}
-      {briefing?.topPostSummary && (
-        <div className="bg-base-100 rounded-box border border-base-200 p-4 flex gap-3 items-center">
-          <ScoreCircle score={briefing.engagementScore} />
-          <p className="text-xs text-base-content/60 leading-relaxed">{briefing.topPostSummary}</p>
+      {/* Today's Thread */}
+      {thread && (
+        <div className="bg-white rounded-2xl p-5" style={{ borderLeft: "4px solid #3b82f6" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-500 mb-2">
+            Today's Thread
+          </p>
+          <p className="text-sm text-base-content/65 leading-relaxed">{thread}</p>
         </div>
       )}
 
-      {/* Sentiment + themes */}
-      {briefing && (briefing.sentiment || (briefing.themes && briefing.themes.length > 0)) && (
-        <div className="space-y-2.5 px-1">
-          {briefing.sentiment && <SentimentBar sentiment={briefing.sentiment} />}
-          {briefing.themes && briefing.themes.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {briefing.themes.map((t) => (
-                <span
-                  key={t}
-                  className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-base-100 border border-base-200 text-base-content/40"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Posts */}
-      {posts.length > 0 && (
-        <div className="bg-base-100 rounded-box border border-base-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-base-200 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-base-content/30">
-              Posts
-            </span>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="text-xs text-base-content/40 hover:text-base-content/60 disabled:opacity-25 transition-colors"
-                >
-                  Prev
-                </button>
-                <span className="text-xs text-base-content/30 tabular-nums">
-                  {page + 1} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={page === totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="text-xs text-base-content/40 hover:text-base-content/60 disabled:opacity-25 transition-colors"
-                >
-                  Next
-                </button>
+      {/* Feed panel — single white card */}
+      {accounts.length > 0 ? (
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <AvatarStrip accounts={accounts} filterId={filterId} onFilter={onFilter} />
+          <div className="border-t border-base-content/[0.06]" />
+          {visible.map((a, i) => (
+            <div key={a.id}>
+              {i > 0 && <div className="border-t border-base-content/[0.06] mx-5" />}
+              <div className="px-5 py-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-bold text-base-content">@{a.handle}</span>
+                  {a.briefing && (
+                    <span className="bg-base-200 text-base-content/45 text-[11px] font-medium px-2.5 py-0.5 rounded-full">
+                      AI Summary
+                    </span>
+                  )}
+                </div>
+                {a.briefing?.moment ? (
+                  <p className="text-sm text-base-content/65 leading-relaxed mb-3">
+                    {a.briefing.moment}
+                  </p>
+                ) : (
+                  <p className="text-sm text-base-content/30 italic mb-3">Briefing pending…</p>
+                )}
+                {a.briefing && (
+                  <button
+                    type="button"
+                    onClick={() => onReadThread(a.id)}
+                    className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors"
+                  >
+                    Read thread →
+                  </button>
+                )}
               </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl p-10 text-center">
+          <p className="text-sm text-base-content/40 mb-4">No accounts tracked yet.</p>
+          <Link to="/settings" className="btn btn-neutral btn-sm">
+            Add your first account
+          </Link>
+        </div>
+      )}
+
+      {accounts.length > 0 && (
+        <p className="text-center text-[11px] text-base-content/25 italic pt-2 pb-4">
+          "Curated by TweetSip AI. Stay informed, stay focused."
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ---- Insights View ----
+
+function InsightsView({
+  account,
+  scanning,
+  onBack,
+}: {
+  account: FeedAccount
+  scanning: boolean
+  onBack: () => void
+}) {
+  const { briefing, posts } = account
+  const highlights = (briefing?.highlights ?? []) as Highlight[]
+  const moods =
+    briefing?.mood
+      ?.split(/[+,]/)
+      .map((s) => s.trim())
+      .filter(Boolean) ?? []
+
+  const toneStyle: Record<Highlight["tone"], { bg: string; text: string }> = {
+    positive: { bg: "rgba(22,163,74,0.08)", text: "#15803d" },
+    notable: { bg: "rgba(59,130,246,0.08)", text: "#1d4ed8" },
+    warning: { bg: "rgba(220,38,38,0.08)", text: "#dc2626" },
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Account header — outside any card */}
+      <div className="flex items-center gap-4">
+        <AccountAvatar account={account} size={48} />
+        <div>
+          <p className="text-base font-bold text-base-content">{account.name ?? account.handle}</p>
+          <p className="text-sm text-base-content/45">
+            @{account.handle}
+            {posts.length > 0 && ` · ${posts.length} posts today`}
+          </p>
+        </div>
+      </div>
+
+      {/* Summary card */}
+      {briefing && (
+        <div className="bg-white rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full bg-emerald-500 ${scanning ? "animate-pulse" : ""}`}
+              />
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35">
+                Summary
+              </span>
+            </div>
+            {moods.length > 0 && (
+              <span className="bg-base-200 text-base-content/45 text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
+                {moods.join(" · ")}
+              </span>
             )}
           </div>
-          {pagePosts.map((post) => (
+          <p
+            className="text-xl font-bold leading-snug text-base-content"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            {briefing.moment}
+          </p>
+        </div>
+      )}
+
+      {/* What Stood Out */}
+      {highlights.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35 mb-3 px-0.5">
+            What Stood Out
+          </p>
+          <div className="space-y-2">
+            {highlights.map((h, i) => (
+              <div
+                key={`${h.tone}-${i}`}
+                className="rounded-2xl p-4 flex items-start gap-3"
+                style={{ background: toneStyle[h.tone].bg }}
+              >
+                <span className="text-lg leading-none shrink-0 mt-0.5">{h.emoji}</span>
+                <p className="text-sm leading-relaxed" style={{ color: toneStyle[h.tone].text }}>
+                  {h.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Top Posts Today */}
+      {posts.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35 px-5 pt-5 pb-4">
+            Top Posts Today
+          </p>
+          {posts.slice(0, 5).map((post, i) => (
             <div
               key={post.id}
-              className="px-5 py-3.5 border-b border-base-200 last:border-0 flex items-start justify-between gap-4"
+              className={`flex items-start gap-4 px-5 py-4 ${i > 0 ? "border-t border-base-content/[0.06]" : ""}`}
             >
-              <p className="text-sm text-base-content/70 leading-relaxed min-w-0">
-                {post.text.length > 120 ? `${post.text.slice(0, 120)}…` : post.text}
+              <p className="text-sm text-base-content/65 leading-relaxed flex-1 min-w-0">
+                {post.text.length > 150 ? `${post.text.slice(0, 150)}…` : post.text}
               </p>
-              <span className="text-sm text-base-content/30 tabular-nums shrink-0">
+              <span
+                className="text-sm text-base-content/35 shrink-0 tabular-nums"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
                 {fmtNum(post.likes)}
               </span>
             </div>
@@ -382,13 +531,30 @@ function AccountView({ account, scanning }: { account: FeedAccount; scanning: bo
 
       {/* Your Move */}
       {briefing?.forYou && (
-        <div className="bg-base-100 rounded-box border border-base-200 p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/30 mb-3">
-            Your Move
-          </p>
-          <p className="text-sm text-base-content/70 leading-relaxed">{briefing.forYou}</p>
+        <div className="rounded-2xl p-5" style={{ background: "rgba(251,191,36,0.12)" }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "rgba(251,191,36,0.25)" }}
+            >
+              <span className="text-base leading-none">⚡</span>
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600">
+              Your Move
+            </p>
+          </div>
+          <p className="text-sm leading-relaxed text-amber-900/80">{briefing.forYou}</p>
         </div>
       )}
+
+      {/* Back link at bottom */}
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-xs text-base-content/35 hover:text-base-content/55 transition-colors pb-4"
+      >
+        ← Back to The Sip
+      </button>
     </div>
   )
 }
@@ -397,20 +563,13 @@ function AccountView({ account, scanning }: { account: FeedAccount; scanning: bo
 
 type ScanStatus = "idle" | "scanning" | "done_new" | "done_same"
 
-const THEME_ICON: Record<ThemePref, React.ReactNode> = {
-  tweetsip: <Sun size={15} />,
-  "tweetsip-dark": <Moon size={15} />,
-  system: <Monitor size={15} />,
-}
-
 function FeedPage() {
   const loaderData = Route.useLoaderData()
   const queryClient = useQueryClient()
-  const { pref, cycle } = useThemeStore()
   const [, startTransition] = useTransition()
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle")
   const [refreshedAt, setRefreshedAt] = useState<number | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [view, setView] = useState<ViewState>({ type: "sip", filterId: null })
 
   const { data: accounts = [], isFetching } = useQuery({
     ...feedQueryOptions(),
@@ -422,8 +581,6 @@ function FeedPage() {
       return false
     },
   })
-
-  const selectedAccount = accounts.find((a) => a.id === selectedId) ?? accounts[0] ?? null
 
   useEffect(() => {
     if (scanStatus !== "scanning" || isFetching || !refreshedAt) return
@@ -455,80 +612,52 @@ function FeedPage() {
     })
   }
 
-  const latestUpdate = accounts
-    .map((a) => a.briefing?.generatedAt)
-    .filter(Boolean)
-    .sort()
-    .at(-1)
-
   const scanning = scanStatus === "scanning"
 
-  const subtitle = (() => {
-    const n = accounts.length
-    const base = `${n} ${n === 1 ? "account" : "accounts"}`
-    if (scanning) return `${base} · fetching…`
-    if (scanStatus === "done_new") return `${base} · briefings updated`
-    if (scanStatus === "done_same") return `${base} · nothing new`
-    return latestUpdate ? `${base} · updated ${timeAgo(latestUpdate)}` : base
-  })()
+  const insightsAccount =
+    view.type === "insights" ? (accounts.find((a) => a.id === view.accountId) ?? null) : null
 
   return (
     <div className="min-h-screen bg-base-200">
-      <div className="max-w-xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-base-content tracking-tight">TweetSip</h1>
-            <p className="text-xs text-base-content/50 mt-0.5">{subtitle}</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={scanning}
-              className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
-              aria-label="Refresh feed"
-            >
-              <RefreshCw size={14} className={scanning || isFetching ? "animate-spin" : ""} />
-            </button>
-            <button
-              type="button"
-              onClick={cycle}
-              className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
-              aria-label="Toggle theme"
-            >
-              {THEME_ICON[pref]}
-            </button>
-            <Link
-              to="/settings"
-              className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
-              aria-label="Settings"
-            >
-              <Settings size={14} />
-            </Link>
-          </div>
-        </div>
-
-        {/* Tab bar */}
-        {accounts.length > 0 && (
+      {/* Sticky header: top bar + tab bar */}
+      <div
+        className="sticky top-0 z-50"
+        style={{ background: "rgba(242,244,248,0.92)", backdropFilter: "blur(12px)" }}
+      >
+        <div className="max-w-2xl mx-auto">
+          <TopBar scanning={scanning} isFetching={isFetching} onRefresh={handleRefresh} />
           <TabBar
             accounts={accounts}
-            selectedId={selectedAccount?.id ?? null}
-            onSelect={setSelectedId}
+            view={view}
+            onSip={() => setView({ type: "sip", filterId: null })}
           />
-        )}
+        </div>
+      </div>
 
-        {/* Account view */}
-        {selectedAccount ? (
-          <div className="mt-4">
-            <AccountView key={selectedAccount.id} account={selectedAccount} scanning={scanning} />
-          </div>
+      {/* Page content */}
+      <div className="max-w-2xl mx-auto px-5 pt-6 pb-16">
+        {view.type === "sip" ? (
+          <SipView
+            accounts={accounts}
+            filterId={view.filterId}
+            onFilter={(id) => setView({ type: "sip", filterId: id })}
+            onReadThread={(id) => setView({ type: "insights", accountId: id })}
+          />
+        ) : insightsAccount ? (
+          <InsightsView
+            account={insightsAccount}
+            scanning={scanning}
+            onBack={() => setView({ type: "sip", filterId: null })}
+          />
         ) : (
-          <div className="text-center py-20">
-            <p className="text-sm text-base-content/40 mb-4">No accounts yet.</p>
-            <Link to="/settings" className="btn btn-neutral btn-sm">
-              Add your first account
-            </Link>
+          <div className="text-center py-16">
+            <button
+              type="button"
+              onClick={() => setView({ type: "sip", filterId: null })}
+              className="text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
+            >
+              ← Back to feed
+            </button>
           </div>
         )}
       </div>

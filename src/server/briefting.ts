@@ -6,6 +6,12 @@ import { briefings, posts, trackedAccounts } from "@/db/schema"
 
 type Db = DrizzleD1Database<typeof schema>
 
+const highlightSchema = z.object({
+  emoji: z.string().max(4),
+  text: z.string().max(150),
+  tone: z.enum(["positive", "notable", "warning"]),
+})
+
 const briefingSchema = z.object({
   moment: z.string().max(280),
   topPostSummary: z.string().max(200),
@@ -18,6 +24,7 @@ const briefingSchema = z.object({
     negative: z.number().min(0).max(100),
   }),
   themes: z.array(z.string().max(30)).min(2).max(5),
+  highlights: z.array(highlightSchema).min(1).max(5),
 })
 
 type BriefingContent = z.infer<typeof briefingSchema>
@@ -33,13 +40,18 @@ Analyze the posts and return a JSON object with exactly these fields:
 - mood: 2–4 words capturing the emotional register of recent posts (e.g., "Triumphant + Promotional", "Defensive + Aggressive", "Quiet + Strategic"). Max 60 chars.
 - sentiment: Object with "positive", "neutral", "negative" as integers that sum to exactly 100. Based on tone and intent of the posts.
 - themes: Array of 3–5 short topic tags (max 30 chars each) representing the dominant subjects in these posts.
+- highlights: Array of exactly 3 standout observations from the posts. Each object has:
+  - "emoji": 1 relevant emoji capturing the nature of the observation
+  - "text": A specific, concrete observation (max 150 chars). Name the thing — what happened, what changed, what was said. Not vague.
+  - "tone": "positive" (win/achievement/good news), "notable" (surprising/unexpected/shift), or "warning" (risk/concern/criticism)
 
 Strict rules:
 - Do NOT restate tweet text verbatim or paraphrase individual posts
 - Do NOT write generic descriptions ("sharing content", "promoting product", "engaging followers")
 - Do NOT give obvious advice ("consider monitoring", "check their profile")
 - mood must be specific to THIS account's current emotional register, not a generic label
-- themes should be specific topics, not generic categories like "Politics" or "Business"`
+- themes should be specific topics, not generic categories like "Politics" or "Business"
+- highlights must be 3 distinct observations — no repeating the same theme in different words`
 
 export async function generateBriefing(
   db: Db,
@@ -99,5 +111,6 @@ export async function generateBriefing(
     mood: content.mood,
     sentiment: JSON.stringify(content.sentiment),
     themes: JSON.stringify(content.themes),
+    highlights: JSON.stringify(content.highlights),
   })
 }

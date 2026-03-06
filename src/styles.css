@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap");
 
 @plugin "daisyui" {
   themes: tweetsip, tweetsip-dark;
@@ -10,7 +10,7 @@
   default: true;
 
   --color-base-100: #ffffff;
-  --color-base-200: #f0f4f8;
+  --color-base-200: #f2f4f8;
   --color-base-300: #e2e8f0;
   --color-base-content: #1a202c;
 
@@ -62,7 +62,9 @@
 }
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-sans: "DM Sans", sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
 }
 
 * {
