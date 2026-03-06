@@ -4,6 +4,16 @@ import { getDb } from "@/db"
 import { authMiddleware } from "@/middleware"
 import { findAccountsByUser } from "@/server/accounts"
 
+// Home: redirect authenticated users to onboarding or feed
+export const guardHome = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    if (!context.user) return null
+    const env = (context as unknown as { cloudflare: { env: Env } }).cloudflare.env
+    const accounts = await findAccountsByUser(getDb(env.DB), context.user.id)
+    throw redirect({ to: accounts.length > 0 ? "/feed" : "/onboarding" })
+  })
+
 // Onboarding: needs auth + no accounts yet
 export const guardOnboarding = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
