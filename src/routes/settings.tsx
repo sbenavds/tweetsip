@@ -259,17 +259,16 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
       <form action={action} className="space-y-3">
         <div className="space-y-1">
           {options.map((opt) => (
-            <label
-              key={opt.value}
-              className="flex items-center gap-3 cursor-pointer px-3 py-2 rounded-lg bg-base-200 hover:bg-base-300 transition-colors"
-            >
-              <input
-                type="radio"
-                name="frequency"
-                value={opt.value}
-                defaultChecked={(current ?? "daily") === opt.value}
-                className="radio radio-sm"
-              />
+            <label key={opt.value} className="flex items-center gap-3 cursor-pointer py-1.5">
+              <span className="bg-base-200 rounded-full p-0.5 shrink-0">
+                <input
+                  type="radio"
+                  name="frequency"
+                  value={opt.value}
+                  defaultChecked={(current ?? "daily") === opt.value}
+                  className="radio radio-sm"
+                />
+              </span>
               <span className="text-sm text-base-content">{opt.label}</span>
             </label>
           ))}
