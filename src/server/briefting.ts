@@ -1,3 +1,5 @@
+import { createGroq } from "@ai-sdk/groq"
+import { generateObject } from "ai"
 import { eq } from "drizzle-orm"
 import type { DrizzleD1Database } from "drizzle-orm/d1"
 import { z } from "zod"
@@ -37,8 +39,6 @@ const briefingSchema = z.object({
   themes: z.array(z.string().transform((s) => s.slice(0, 30))).catch([]),
   highlights: z.array(highlightSchema).max(5).catch([]),
 })
-
-type BriefingContent = z.infer<typeof briefingSchema>
 
 const SYSTEM_PROMPT = `You are an intelligence analyst briefing a professional who tracks this X account for strategic or competitive reasons.
 
@@ -88,28 +88,17 @@ export async function generateBriefing(
     .map((p, i) => `${i + 1}. "${p.text}" (likes: ${p.likes}, reposts: ${p.reposts})`)
     .join("\n")
 
-  const result = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `Analyze these ${recentPosts.length} recent posts from ${account.handle}:\n\n${postsText}\n\nReturn only valid JSON.`,
-      },
-    ],
-    response_format: { type: "json_object" },
+  const groq = createGroq({
+    apiKey: env.GROQ_API_KEY,
+    baseURL: `https://gateway.ai.cloudflare.com/v1/${env.CLOUDFLARE_ACCOUNT_ID}/tweetsip/groq/openai/v1`,
   })
 
-  if (typeof result !== "object" || !("response" in result)) {
-    throw new Error("Unexpected response from Workers AI")
-  }
-
-  const raw = result.response
-  const jsonStart = raw.indexOf("{")
-  const jsonEnd = raw.lastIndexOf("}")
-  if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON object found in AI response")
-  const content: BriefingContent = briefingSchema.parse(
-    JSON.parse(raw.slice(jsonStart, jsonEnd + 1))
-  )
+  const { object: content } = await generateObject({
+    model: groq("llama-3.3-70b-versatile"),
+    schema: briefingSchema,
+    system: SYSTEM_PROMPT,
+    prompt: `Analyze these ${recentPosts.length} recent posts from ${account.handle}:\n\n${postsText}`,
+  })
 
   await db.insert(briefings).values({
     id: crypto.randomUUID(),
