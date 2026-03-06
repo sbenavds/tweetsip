@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { ArrowRight, Mail } from "lucide-react"
 import { useActionState } from "react"
 import { authClient } from "@/lib/auth-client"
 
@@ -27,11 +28,17 @@ function LoginPage() {
   if (state.sent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
-        <div className="max-w-sm w-full px-6 text-center">
-          <div className="text-4xl mb-6">✉️</div>
-          <h1 className="text-2xl font-bold text-base-content mb-3">Check your email</h1>
-          <p className="text-base-content/60 text-sm leading-relaxed">
-            We sent a magic link to <strong>{state.email}</strong>. Open it to continue.
+        <div className="max-w-sm w-full px-6 text-center space-y-3">
+          <div className="flex justify-center mb-5">
+            <div className="w-12 h-12 rounded-2xl bg-base-100 border border-base-300 flex items-center justify-center">
+              <Mail size={20} className="text-base-content/60" />
+            </div>
+          </div>
+          <h1 className="text-xl font-bold text-base-content">Check your inbox</h1>
+          <p className="text-base-content/50 text-sm leading-relaxed">
+            We sent a magic link to{" "}
+            <span className="text-base-content font-medium">{state.email}</span>. Open it to sign
+            in.
           </p>
         </div>
       </div>
@@ -41,41 +48,44 @@ function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200">
       <div className="max-w-sm w-full px-6">
-        <div className="text-center mb-10">
-          <div className="text-3xl font-extrabold text-base-content tracking-tight mb-2">
-            TweetSip ☕
-          </div>
-          <p className="text-base-content/50 text-sm">Your daily X digest</p>
+        <div className="mb-10">
+          <p className="text-lg font-bold text-base-content tracking-tight">TweetSip</p>
+          <p className="text-base-content/40 text-sm mt-0.5">Sign in to your account</p>
         </div>
 
-        <form action={action} className="space-y-4">
+        <form action={action} className="space-y-3">
           <div>
-            <label htmlFor="email" className="text-sm font-medium text-base-content/70 mb-2 block">
+            <label
+              htmlFor="email"
+              className="text-xs font-medium text-base-content/60 mb-1.5 block"
+            >
               Email
             </label>
             <input
               id="email"
               name="email"
               type="email"
-              placeholder="you@email.com"
+              placeholder="you@example.com"
               required
-              className="input input-bordered w-full bg-white border-base-300"
+              className="input w-full bg-base-100 border border-base-300"
             />
           </div>
 
-          {state.error && <p className="text-error text-sm">{state.error}</p>}
+          {state.error && <p className="text-error text-xs">{state.error}</p>}
 
-          <button type="submit" disabled={pending} className="btn btn-neutral w-full">
+          <button type="submit" disabled={pending} className="btn btn-neutral w-full gap-2">
             {pending ? (
               <span className="loading loading-spinner loading-sm" />
             ) : (
-              "Continue with magic link →"
+              <>
+                Continue <ArrowRight size={14} />
+              </>
             )}
           </button>
         </form>
 
         <p className="text-center text-xs text-base-content/30 mt-8">
-          No passwords. Just a link in your inbox.
+          No password needed — we'll email you a link.
         </p>
       </div>
     </div>

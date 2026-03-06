@@ -210,12 +210,10 @@ function AccountCard({ account }: { account: FeedAccount }) {
   const [expanded, setExpanded] = useState(false)
   const { briefing, posts } = account
   const score = briefing?.engagementScore ?? null
-  const status = getStatus(score)
 
   return (
-    <div className="relative bg-base-100 rounded-box border border-base-200 overflow-hidden">
+    <div className="bg-base-100 rounded-box border border-base-200 overflow-hidden">
       {/* Status accent — only for hot accounts */}
-      {status === "hot" && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-success" />}
 
       <div className="p-5 space-y-4">
         {/* Header */}
@@ -359,11 +357,6 @@ function FeedPage() {
     return latestUpdate ? `${base} · updated ${timeAgo(latestUpdate)}` : base
   })()
 
-  const topInsight = accounts
-    .filter((a) => a.briefing?.forYou)
-    .sort((a, b) => (b.briefing?.engagementScore ?? 0) - (a.briefing?.engagementScore ?? 0))
-    .at(0)?.briefing?.forYou
-
   return (
     <div className="min-h-screen bg-base-200">
       <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
@@ -403,13 +396,6 @@ function FeedPage() {
             </Link>
           </div>
         </div>
-
-        {/* Top insight — editorial pull quote, not a card */}
-        {topInsight && scanStatus === "idle" && (
-          <div className="border-l-2 border-base-content/20 pl-3 py-0.5">
-            <p className="text-sm text-base-content/50 italic leading-relaxed">{topInsight}</p>
-          </div>
-        )}
 
         {/* Cards */}
         {accounts.map((account) => (

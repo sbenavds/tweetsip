@@ -33,12 +33,12 @@ function HandleTag({ handle }: { handle: string }) {
   const removeHandle = useOnboarding((s) => s.removeHandle)
 
   return (
-    <div className="flex items-center justify-between p-3 bg-base-100 rounded-box border border-base-300 shadow-sm animate-[fadeUp_0.3s_ease_both]">
-      <span className="text-sm font-semibold text-base-content">{handle}</span>
+    <div className="flex items-center justify-between py-2.5 border-b border-base-200 last:border-0 animate-[fadeUp_0.3s_ease_both]">
+      <span className="text-sm text-base-content">{handle}</span>
       <button
         type="button"
         onClick={() => removeHandle(handle)}
-        className="btn btn-ghost btn-circle btn-sm focus:outline-none text-base-content/30 hover:text-base-content/60 hover:bg-transparent"
+        className="btn btn-ghost btn-circle btn-xs focus:outline-none text-base-content/30 hover:text-error hover:bg-transparent"
         aria-label={`Remove ${handle}`}
       >
         <X size={13} />
@@ -73,20 +73,19 @@ function AddHandleForm() {
           id="handle"
           name="handle"
           type="text"
-          placeholder="@naval"
-          className="input input-bordered w-full bg-white border-base-300"
+          placeholder="@handle"
+          className="input w-full bg-base-100 border border-base-300"
         />
         <button
           type="submit"
           disabled={pending}
-          className="btn btn-neutral btn-square focus:outline-none"
-          style={{ borderRadius: 14 }}
+          className="btn btn-neutral btn-square"
           aria-label="Add account"
         >
           {pending ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
         </button>
       </form>
-      {error && <p className="text-error text-xs pl-1">{error}</p>}
+      {error && <p className="text-error text-xs">{error}</p>}
     </div>
   )
 }
@@ -108,17 +107,17 @@ function StepAccounts() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-extrabold text-base-content tracking-tight">
+      <div className="space-y-1.5">
+        <h1 className="text-xl font-bold text-base-content tracking-tight">
           Who do you want to track?
         </h1>
-        <p className="text-sm text-base-content/50 leading-relaxed">
-          Add up to 5 X accounts — competitors, references, or anyone you care about.
+        <p className="text-sm text-base-content/40 leading-relaxed">
+          Add up to 5 X accounts. We'll brief you on every one.
         </p>
       </div>
 
       {handles.length > 0 && (
-        <div className="space-y-2">
+        <div className="bg-base-100 rounded-box border border-base-200 px-4">
           {handles.map((h) => (
             <HandleTag key={h} handle={h} />
           ))}
@@ -127,15 +126,11 @@ function StepAccounts() {
 
       <AddHandleForm />
 
-      <div className="text-center text-xs text-base-content/30">
-        {handles.length}/5 accounts added
-      </div>
-
       <button
         type="button"
         disabled={handles.length === 0 || saving}
         onClick={handleFinish}
-        className="btn btn-neutral w-full"
+        className="btn btn-neutral w-full gap-2"
       >
         {saving ? (
           <Loader2 size={15} className="animate-spin" />
@@ -145,6 +140,8 @@ function StepAccounts() {
           </>
         )}
       </button>
+
+      <p className="text-center text-xs text-base-content/30">{handles.length}/5 accounts</p>
     </div>
   )
 }
@@ -161,12 +158,11 @@ function OnboardingPage() {
         }
       `}</style>
 
-      <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 flex items-center justify-center px-4">
-        <div className="w-full max-w-sm animate-[fadeUp_0.5s_ease_both]">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-extrabold text-base-content tracking-tight">
-              TweetSip ☕
-            </h2>
+      <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm animate-[fadeUp_0.4s_ease_both]">
+          <div className="mb-10">
+            <p className="text-lg font-bold text-base-content tracking-tight">TweetSip</p>
+            <p className="text-base-content/40 text-sm mt-0.5">Let's set up your feed</p>
           </div>
           <StepAccounts />
         </div>
