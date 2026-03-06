@@ -1,4 +1,4 @@
-const X_API_BASE = "https://api.twitter.com/2";
+const X_API_BASE = "https://api.x.com/2";
 
 type XPost = {
   id: string;
@@ -35,9 +35,10 @@ export async function fetchUserByHandle(
     headers: { Authorization: `Bearer ${bearerToken}` },
   });
 
-  if (!res.ok) return null;
-
   const json = await res.json<{ data?: XUser }>();
+  console.log("[x-api] fetchUserByHandle", handle, res.status, JSON.stringify(json));
+
+  if (!res.ok) return null;
   return json.data ?? null;
 }
 
@@ -58,8 +59,9 @@ export async function fetchUserTimeline(
     headers: { Authorization: `Bearer ${bearerToken}` },
   });
 
-  if (!res.ok) return [];
-
   const json = await res.json<XTimelineResponse>();
+  console.log("[x-api] fetchUserTimeline", xUserId, res.status, JSON.stringify(json));
+
+  if (!res.ok) return [];
   return json.data ?? [];
 }

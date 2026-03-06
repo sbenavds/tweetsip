@@ -8,28 +8,11 @@
     "enabled": true,
   },
   "vars": {
-    "BETTER_AUTH_URL": "",
-    "X_BEARER_TOKEN": "",
-    "RESEND_API_KEY": "",
+    "BETTER_AUTH_URL": "https://tweetsip.sbenavds-account.workers.dev",
   },
   "triggers": {
     "crons": ["0 8 * * *", "0 * * * *"],
   },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "tweetsip-db",
-      "database_id": "f3396c22-47e5-4478-adf6-b837ec0bb8fe",
-      "migrations_dir": "drizzle/migrations",
-    },
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "tweetsip-data",
-      "preview_bucket_name": "tweetsip-data",
-    },
-  ],
   "ai": {
     "binding": "AI",
   },
@@ -44,19 +27,34 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_classes": ["AccountMonitor"],
+      "new_sqlite_classes": ["AccountMonitor"],
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tweetsip-db-staging",
+      "database_id": "b9bdcea7-4a22-40df-abdc-3ea76e9e4734",
+      "migrations_dir": "drizzle/migrations",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "tweetsip-data-staging",
+      "preview_bucket_name": "tweetsip-data-staging",
     },
   ],
   "queues": {
     "producers": [
       {
         "binding": "QUEUE",
-        "queue": "tweetsip-jobs",
+        "queue": "tweetsip-jobs-staging",
       },
     ],
     "consumers": [
       {
-        "queue": "tweetsip-jobs",
+        "queue": "tweetsip-jobs-staging",
         "max_batch_size": 10,
         "max_batch_timeout": 30,
       },
