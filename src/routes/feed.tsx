@@ -327,12 +327,20 @@ function SipView({
 
   return (
     <div>
-      {/* Date + greeting */}
+      {/* Date + greeting — suppressHydrationWarning because new Date() differs
+          between Cloudflare Worker (UTC) and browser (user timezone). This is an
+          expected, harmless mismatch per rendering-hydration-suppress-warning. */}
       <div className="mb-5">
-        <p className="text-[10px] text-base-content/40 tracking-[0.08em] uppercase font-medium mb-1">
+        <p
+          suppressHydrationWarning
+          className="text-[10px] text-base-content/40 tracking-[0.08em] uppercase font-medium mb-1"
+        >
           {dateLabel()} · Daily Sip
         </p>
-        <h2 className="font-serif text-[26px] font-bold tracking-tight text-base-content">
+        <h2
+          suppressHydrationWarning
+          className="font-serif text-[26px] font-bold tracking-tight text-base-content"
+        >
           {greeting()} ☕
         </h2>
       </div>
