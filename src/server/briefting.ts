@@ -6,25 +6,36 @@ import { briefings, posts, trackedAccounts } from "@/db/schema"
 
 type Db = DrizzleD1Database<typeof schema>
 
+// .catch() means "use this default instead of throwing" — the AI output is valid-ish
+// but often violates strict length/count constraints, which was silently killing jobs.
+// .transform() truncates strings at the DB column limits without rejecting the briefing.
 const highlightSchema = z.object({
-  emoji: z.string().max(4),
-  text: z.string().max(150),
-  tone: z.enum(["positive", "notable", "warning"]),
+  emoji: z.string().catch("📌"),
+  text: z
+    .string()
+    .transform((s) => s.slice(0, 150))
+    .catch(""),
+  tone: z.enum(["positive", "notable", "warning"]).catch("notable"),
 })
 
 const briefingSchema = z.object({
-  moment: z.string().max(280),
-  topPostSummary: z.string().max(200),
-  forYou: z.string().max(200),
-  engagementScore: z.number().min(0).max(100),
-  mood: z.string().max(60),
-  sentiment: z.object({
-    positive: z.number().min(0).max(100),
-    neutral: z.number().min(0).max(100),
-    negative: z.number().min(0).max(100),
-  }),
-  themes: z.array(z.string().max(30)).min(2).max(5),
-  highlights: z.array(highlightSchema).min(1).max(5),
+  moment: z.string().transform((s) => s.slice(0, 280)),
+  topPostSummary: z.string().transform((s) => s.slice(0, 200)),
+  forYou: z.string().transform((s) => s.slice(0, 200)),
+  engagementScore: z.coerce.number().catch(50),
+  mood: z
+    .string()
+    .transform((s) => s.slice(0, 60))
+    .catch(""),
+  sentiment: z
+    .object({
+      positive: z.coerce.number(),
+      neutral: z.coerce.number(),
+      negative: z.coerce.number(),
+    })
+    .catch({ positive: 33, neutral: 34, negative: 33 }),
+  themes: z.array(z.string().transform((s) => s.slice(0, 30))).catch([]),
+  highlights: z.array(highlightSchema).max(5).catch([]),
 })
 
 type BriefingContent = z.infer<typeof briefingSchema>

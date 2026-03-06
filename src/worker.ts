@@ -99,8 +99,22 @@ export default {
             })
           }
 
-          // Run briefing inline — avoids a second queue hop (~5s saved)
-          await generateBriefing(db, env, payload.accountId, account.userId)
+          // Run briefing inline but isolated — a briefing failure must NOT cause
+          // the post-sync job to retry (that would re-trigger exponential backoff
+          // on the whole FETCH_ACCOUNT job, blocking the user for minutes).
+          try {
+            await generateBriefing(db, env, payload.accountId, account.userId)
+          } catch (briefingErr) {
+            console.error(
+              "[briefing] failed, enqueuing separate retry",
+              payload.accountId,
+              String(briefingErr)
+            )
+            await enqueue.generateBriefing(env.QUEUE, {
+              accountId: payload.accountId,
+              userId: account.userId,
+            })
+          }
         } else if (type === "GENERATE_BRIEFING") {
           await generateBriefing(db, env, payload.accountId, payload.userId)
         } else if (type === "SEND_NOTIFICATION") {
