@@ -81,35 +81,29 @@ function todaysThread(accounts: FeedAccount[]): string | null {
 }
 
 // ── Avatar ─────────────────────────────────────────────────────────────────────
-// Named size variants map to Tailwind classes; only the gradient needs inline style.
 
-type AvatarSize = "xs" | "sm" | "md"
-
-const AVATAR_SIZE_CLASSES: Record<AvatarSize, string> = {
-  xs: "size-[18px] text-[7px]",
-  sm: "size-8 text-[12px]",
-  md: "size-9 text-[13px]",
-}
-
-function AvatarCircle({ account, size = "sm" }: { account: FeedAccount; size?: AvatarSize }) {
+function AvatarCircle({ account, ring = false }: { account: FeedAccount; ring?: boolean }) {
   const letter = (account.name ?? account.handle)[0].toUpperCase()
-  const cls = AVATAR_SIZE_CLASSES[size]
+  const ringCls = ring ? "ring-2 ring-base-content ring-offset-2 ring-offset-base-100" : ""
+
   if (account.avatarUrl) {
     return (
-      <img
-        src={account.avatarUrl}
-        alt=""
-        className={`${cls} rounded-full object-cover block shrink-0`}
-      />
+      <div className="avatar shrink-0">
+        <div className={`mask mask-squircle w-8 ${ringCls}`}>
+          <img src={account.avatarUrl} alt={account.name ?? account.handle} />
+        </div>
+      </div>
     )
   }
-  // background is the only inline style left — it's a computed gradient, not expressible as a static class
+
   return (
-    <div
-      className={`${cls} rounded-full flex items-center justify-center text-white font-bold shrink-0`}
-      style={{ background: avatarGrad(account.handle) }}
-    >
-      {letter}
+    <div className="avatar avatar-placeholder shrink-0">
+      <div
+        className={`mask mask-squircle w-8 text-xs font-bold ${ringCls}`}
+        style={{ background: avatarGrad(account.handle) }}
+      >
+        <span className="text-white">{letter}</span>
+      </div>
     </div>
   )
 }
@@ -229,7 +223,7 @@ function TabBar({
         {/* Right: Account tab — only in insights, pinned far right */}
         {insightsAccount && (
           <div className="flex items-center gap-2 py-[11px] -mb-px border-b-2 border-base-content">
-            <AvatarCircle account={insightsAccount} size="xs" />
+            <AvatarCircle account={insightsAccount} />
             <span className="text-[13px] font-semibold text-base-content whitespace-nowrap">
               {displayHandle(insightsAccount.handle)}
             </span>
@@ -283,12 +277,7 @@ function AvatarStrip({
                 filterId !== null && !active ? "opacity-30" : "opacity-100"
               }`}
             >
-              {/* ring-2 on rounded-full gives a circular ring, not a square outline */}
-              <div
-                className={`rounded-full ${active ? "ring-2 ring-base-content ring-offset-2" : ""}`}
-              >
-                <AvatarCircle account={a} size="sm" />
-              </div>
+              <AvatarCircle account={a} ring={active} />
               <span
                 className={`text-[9px] max-w-[44px] truncate ${
                   active ? "text-base-content font-semibold" : "text-base-content/40"
@@ -457,7 +446,7 @@ function InsightsView({
     <div className="space-y-2.5">
       {/* Account header — outside any card */}
       <div className="flex items-center gap-3 mb-5">
-        <AvatarCircle account={account} size="md" />
+        <AvatarCircle account={account} />
         <div>
           <p className="text-[14px] font-semibold text-base-content">
             {account.name ?? account.handle}
