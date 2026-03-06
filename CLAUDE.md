@@ -12,7 +12,7 @@ TweetSip is a **X/Twitter digest app** built entirely on the Cloudflare develope
 | Backend | Cloudflare Workers (D1, R2, Queue, AI, Durable Objects) |
 | Auth | Better Auth — magic link only |
 | ORM | Drizzle ORM + D1 (SQLite dialect) |
-| AI | Workers AI — Llama 3.3 70B (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`) |
+| AI | Groq (Llama 3.3 70B `llama-3.3-70b-versatile`) via **Vercel AI SDK** + **Cloudflare AI Gateway** |
 | Email | Resend + React Email |
 | State | Zustand (theme store) |
 | Styling | Tailwind CSS v4 + DaisyUI |
@@ -90,6 +90,8 @@ Secrets (via `.dev.vars` locally, Wrangler secrets in production):
 - `X_BEARER_TOKEN` — X API v2 bearer token
 - `RESEND_API_KEY` — Resend API key
 - `BETTER_AUTH_SECRET` — Better Auth secret
+- `GROQ_API_KEY` — Groq API key (for AI briefing generation)
+- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID (used to build the AI Gateway URL)
 
 ---
 
@@ -106,7 +108,7 @@ scheduled("0 8 * * *")
               └── strong signal check         # if latest post > 3x avg engagement
               │     └── SEND_NOTIFICATION(strong_signal)
               └── GENERATE_BRIEFING job
-                    └── generateBriefing()    # Workers AI → D1 briefings table
+                    └── generateBriefing()    # Groq via AI Gateway → D1 briefings table
 ```
 
 ### Daily Digest (cron: `0 * * * *` hourly)
@@ -137,7 +139,7 @@ Defined in `src/lib/queue.ts`, consumed in `src/worker.ts`:
 | Job type | Payload | Action |
 |---|---|---|
 | `FETCH_ACCOUNT` | `{ accountId, handle }` | Sync posts from X API |
-| `GENERATE_BRIEFING` | `{ accountId, userId }` | Run Workers AI, insert briefing |
+| `GENERATE_BRIEFING` | `{ accountId, userId }` | Run Groq via AI Gateway, insert briefing |
 | `SEND_NOTIFICATION` | `{ userId, notificationType, accountId? }` | Send email via Resend |
 
 Queue config: `max_batch_size: 10`, `max_batch_timeout: 30s`. Failed jobs call `msg.retry()`.
@@ -148,18 +150,28 @@ Queue config: `max_batch_size: 10`, `max_batch_timeout: 30s`. Failed jobs call `
 
 `src/server/briefting.ts` — `generateBriefing(db, env, accountId, userId)`:
 
-- Reads the **5 most recent posts** for the account from D1
-- Calls **Workers AI** (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`) with structured JSON output
-- Validates response with Zod against the briefing schema
+- Reads the **10 most recent posts** for the account from D1
+- Calls **Groq** (`llama-3.3-70b-versatile`, ~3-5s) via **Vercel AI SDK** `generateObject()`, proxied through **Cloudflare AI Gateway**
+- `generateObject()` enforces the Zod schema as structured output — no manual JSON parsing needed
+- All schema fields use `.catch()` defaults and `.transform()` truncation so a partial AI response never kills the job
 - Inserts into `briefings` table
+
+**AI stack rationale:**
+- **Groq** — LPU hardware, 3-5s for 70B models (vs 45-60s on Workers AI)
+- **Vercel AI SDK** (`generateObject`) — native structured output with Zod; retries on invalid JSON automatically
+- **Cloudflare AI Gateway** — transparent proxy at `gateway.ai.cloudflare.com/v1/{accountId}/tweetsip/groq/openai/v1`; adds request caching, cost analytics, rate-limit protection, and a request log in the CF dashboard — all without changing how the app calls Groq
 
 **Output schema:**
 ```ts
 {
-  moment: string          // one-sentence vibe summary (max 120 chars)
-  topPostSummary: string  // most engaging post summary (max 150 chars)
-  forYou: string          // personalized insight (max 150 chars)
-  engagementScore: number // 0–100
+  moment: string          // 2-3 sentence narrative of what the account is doing now (max 280 chars)
+  topPostSummary: string  // why the top post landed — hook/mechanic/trigger (max 200 chars)
+  forYou: string          // concrete post angle suggestion for the monitor (max 200 chars)
+  engagementScore: number // 0–100 (50 = baseline, 75+ = high, 90+ = viral)
+  mood: string            // 2-4 word emotional register (max 60 chars)
+  sentiment: { positive: number, neutral: number, negative: number } // integers summing to 100
+  themes: string[]        // 3–5 topic tags (max 30 chars each)
+  highlights: { emoji: string, text: string, tone: "positive"|"notable"|"warning" }[] // 3 items
 }
 ```
 
