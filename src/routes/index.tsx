@@ -53,11 +53,14 @@ function LandingPage() {
 
       {/* Hero image */}
       <section className="max-w-4xl mx-auto px-6 pb-20 w-full">
-        <img
-          src="/hero.png"
-          alt="Accounts flow into AI, AI generates a summarized digest"
-          className="w-full rounded-2xl shadow-lg"
-        />
+        <div className="relative rounded-2xl overflow-hidden shadow-lg">
+          <img
+            src="/hero.png"
+            alt="Accounts flow into AI, AI generates a summarized digest"
+            className="w-full"
+          />
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-base-200 via-base-200/60 to-transparent" />
+        </div>
       </section>
 
       {/* Features */}

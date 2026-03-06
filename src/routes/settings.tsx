@@ -257,9 +257,12 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
       <h2 className="font-bold text-base-content">Notifications</h2>
       <form action={action} className="space-y-3">
-        <div className="space-y-2">
+        <div className="space-y-1">
           {options.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
+            <label
+              key={opt.value}
+              className="flex items-center gap-3 cursor-pointer px-3 py-2 rounded-lg bg-base-200 hover:bg-base-300 transition-colors"
+            >
               <input
                 type="radio"
                 name="frequency"
