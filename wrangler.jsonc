@@ -56,7 +56,7 @@
       {
         "queue": "tweetsip-jobs-staging",
         "max_batch_size": 10,
-        "max_batch_timeout": 30,
+        "max_batch_timeout": 5,
       },
     ],
   },

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
-import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react"
+import { ChevronDown, ChevronUp, Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react"
 import { useState, useTransition } from "react"
 import { getFeed } from "@/functions/feed"
 import { triggerFetch } from "@/functions/scheduler"
@@ -266,7 +266,7 @@ function AccountCard({ account }: { account: FeedAccount }) {
           onClick={() => setExpanded((v) => !v)}
           className="w-full py-3 border-t border-base-200 text-xs text-base-content/40 hover:text-base-content/60 transition-colors flex items-center justify-center gap-1.5"
         >
-          <span>{expanded ? "▲" : "▼"}</span>
+          {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           {expanded ? "close" : "view latest posts"}
         </button>
       )}

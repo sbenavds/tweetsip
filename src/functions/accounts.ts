@@ -3,6 +3,7 @@ import { getDb } from "@/db"
 import { enqueue } from "@/lib/queue"
 import { authMiddleware } from "@/middleware"
 import { findAccountsByUser, insertAccount, removeAccount } from "@/server/accounts"
+import { syncAccountPosts } from "@/server/posts"
 
 export const getAccounts = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -22,7 +23,9 @@ export const addAccount = createServerFn({ method: "POST" })
     const env = (context as unknown as { cloudflare: { env: Env } }).cloudflare.env
     const db = getDb(env.DB)
     const account = await insertAccount(db, user.id, data.handle)
-    await enqueue.fetchAccount(env.QUEUE, { accountId: account.id, handle: account.handle })
+    // Fetch posts inline (skips one queue cycle) then enqueue briefing generation
+    await syncAccountPosts(db, account.id, env.X_BEARER_TOKEN)
+    await enqueue.generateBriefing(env.QUEUE, { accountId: account.id, userId: user.id })
     return account
   })
 

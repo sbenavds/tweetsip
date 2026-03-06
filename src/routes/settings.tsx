@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router"
 import { ArrowLeft, Loader2, Plus, X } from "lucide-react"
 import { useActionState, useOptimistic, useState, useTransition } from "react"
@@ -128,6 +129,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
 
 function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleting, startDelete] = useTransition()
 
@@ -145,6 +147,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
         addOptimistic(raw)
         await addAccount({ data: { handle: raw } })
         router.invalidate()
+        queryClient.invalidateQueries({ queryKey: ["feed"] })
       } catch (e) {
         return e instanceof Error ? e.message : "Failed to add account"
       }
@@ -158,6 +161,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
       try {
         await deleteTrackedAccount({ data: { accountId } })
         router.invalidate()
+        queryClient.invalidateQueries({ queryKey: ["feed"] })
       } catch {
         setDeleteError("Failed to remove account")
       }
