@@ -293,22 +293,10 @@ function DangerZone() {
     })
   }
 
-  async function handleSignOut() {
-    await signOut()
-    window.location.href = "/login"
-  }
-
   return (
     <section className="bg-base-100 rounded-box border border-error/20 p-5 space-y-4">
       <h2 className="font-bold text-base-content">Danger zone</h2>
       <div className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="btn btn-ghost btn-sm self-start text-base-content/60"
-        >
-          Sign out
-        </button>
         {!confirming ? (
           <button
             type="button"
@@ -355,14 +343,28 @@ function DangerZone() {
 function SettingsPage() {
   const { profile, accounts } = Route.useLoaderData()
 
+  async function handleSignOut() {
+    await signOut()
+    window.location.href = "/login"
+  }
+
   return (
     <div className="min-h-screen bg-base-200">
       <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
-        <div className="flex items-center gap-3 mb-2">
-          <Link to="/feed" className="btn btn-ghost btn-square btn-sm text-base-content/50">
-            <ArrowLeft size={15} />
-          </Link>
-          <h1 className="text-xl font-extrabold text-base-content tracking-tight">Settings</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <Link to="/feed" className="btn btn-ghost btn-square btn-sm text-base-content/50">
+              <ArrowLeft size={15} />
+            </Link>
+            <h1 className="text-xl font-extrabold text-base-content tracking-tight">Settings</h1>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="btn btn-ghost btn-sm text-base-content/50 hover:text-base-content"
+          >
+            Sign out
+          </button>
         </div>
 
         <ProfileSection profile={profile} />
