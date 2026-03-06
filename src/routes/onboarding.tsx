@@ -101,7 +101,7 @@ function StepAccounts() {
       for (const handle of handles) {
         await addAccount({ data: { handle } })
       }
-      navigate({ to: "/feed" })
+      navigate({ to: "/feed", search: {} })
     })
   }
 

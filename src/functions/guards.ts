@@ -4,14 +4,12 @@ import { getDb } from "@/db"
 import { authMiddleware } from "@/middleware"
 import { findAccountsByUser } from "@/server/accounts"
 
-// Home: redirect authenticated users to onboarding or feed
+// Home: redirect authenticated users to feed (empty state handled there)
 export const guardHome = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     if (!context.user) return null
-    const env = (context as unknown as { cloudflare: { env: Env } }).cloudflare.env
-    const accounts = await findAccountsByUser(getDb(env.DB), context.user.id)
-    throw redirect({ to: accounts.length > 0 ? "/feed" : "/onboarding" })
+    throw redirect({ to: "/feed", search: {} })
   })
 
 // Onboarding: needs auth + no accounts yet
@@ -21,6 +19,6 @@ export const guardOnboarding = createServerFn({ method: "GET" })
     if (!context.user) throw redirect({ to: "/login" })
     const env = (context as unknown as { cloudflare: { env: Env } }).cloudflare.env
     const accounts = await findAccountsByUser(getDb(env.DB), context.user.id)
-    if (accounts.length > 0) throw redirect({ to: "/feed" })
+    if (accounts.length > 0) throw redirect({ to: "/feed", search: {} })
     return null
   })

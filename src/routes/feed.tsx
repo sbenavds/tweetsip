@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
-import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react"
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router"
+import { Monitor, Moon, Plus, RefreshCw, Settings, Sun } from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 import { getFeed } from "@/functions/feed"
 import { triggerFetch } from "@/functions/scheduler"
@@ -10,6 +10,13 @@ import { useThemeStore } from "@/lib/store"
 import type { FeedAccount } from "@/server/feed"
 
 export const Route = createFileRoute("/feed")({
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { view?: "sip" | "insights"; account?: string } => ({
+    view:
+      search.view === "insights" ? "insights" : search.view === "sip" ? "sip" : undefined,
+    account: typeof search.account === "string" ? search.account : undefined,
+  }),
   loader: async () => {
     try {
       return await getFeed()
@@ -294,12 +301,12 @@ function AvatarStrip({
 
         <div className="w-px h-5 bg-base-content/[0.10] self-center mx-1 shrink-0" />
 
-        <Link
-          to="/settings"
-          className="w-8 h-8 rounded-full border-2 border-dashed border-base-content/[0.15] flex items-center justify-center text-base-content/30 hover:text-base-content/50 transition-colors self-start shrink-0 text-sm leading-none"
-          aria-label="Add account"
-        >
-          +
+        <Link to="/settings" className="shrink-0 self-start group" aria-label="Add account">
+          <div className="avatar avatar-placeholder">
+            <div className="mask mask-squircle w-8 bg-base-content/[0.07] group-hover:bg-base-content/[0.13] transition-colors text-base-content/30 group-hover:text-base-content/50">
+              <Plus size={13} />
+            </div>
+          </div>
         </Link>
       </div>
     </div>
@@ -351,7 +358,7 @@ function SipView({
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
           <p className="text-[11px] text-base-content/40">
             {scanning
-              ? "Fetching posts and generating briefings… this takes ~30s"
+              ? "Fetching posts and generating briefings… this takes ~5s"
               : `${pendingCount} ${pendingCount === 1 ? "briefing" : "briefings"} generating…`}
           </p>
         </div>
@@ -581,7 +588,23 @@ function FeedPage() {
   const queryClient = useQueryClient()
   const [isPending, startTransition] = useTransition()
   const [scanning, setScanning] = useState(false)
-  const [view, setView] = useState<ViewState>({ type: "sip", filterId: null })
+  const search = Route.useSearch()
+  const navigate = useNavigate({ from: "/feed" })
+
+  const view: ViewState =
+    search.view === "insights" && search.account
+      ? { type: "insights", accountId: search.account }
+      : { type: "sip", filterId: search.account ?? null }
+
+  function setFilter(id: string | null) {
+    navigate({ search: id ? { view: "sip", account: id } : { view: undefined, account: undefined } })
+  }
+  function goInsights(id: string) {
+    navigate({ search: { view: "insights", account: id } })
+  }
+  function goBack() {
+    navigate({ search: { view: undefined, account: undefined } })
+  }
 
   const { data: accounts = [], isFetching } = useQuery({
     ...feedQueryOptions(),
@@ -624,11 +647,7 @@ function FeedPage() {
           isFetching={isFetching}
           onRefresh={handleRefresh}
         />
-        <TabBar
-          accounts={accounts}
-          view={view}
-          onSip={() => setView({ type: "sip", filterId: null })}
-        />
+        <TabBar accounts={accounts} view={view} onSip={goBack} />
       </div>
 
       <div className="max-w-[580px] mx-auto px-[18px] pt-6 pb-16">
@@ -637,20 +656,16 @@ function FeedPage() {
             accounts={accounts}
             filterId={view.filterId}
             scanning={scanning}
-            onFilter={(id) => setView({ type: "sip", filterId: id })}
-            onReadThread={(id) => setView({ type: "insights", accountId: id })}
+            onFilter={setFilter}
+            onReadThread={goInsights}
           />
         ) : insightsAccount ? (
-          <InsightsView
-            account={insightsAccount}
-            scanning={scanning}
-            onBack={() => setView({ type: "sip", filterId: null })}
-          />
+          <InsightsView account={insightsAccount} scanning={scanning} onBack={goBack} />
         ) : (
           <div className="text-center py-16">
             <button
               type="button"
-              onClick={() => setView({ type: "sip", filterId: null })}
+              onClick={goBack}
               className="text-sm text-base-content/35 hover:text-base-content/55 transition-colors"
             >
               ← Back to feed
