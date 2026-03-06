@@ -1,7 +1,8 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react";
 import { getFeed } from "@/functions/feed";
+import { triggerFetch } from "@/functions/scheduler";
 import type { FeedAccount } from "@/server/feed";
 import { useThemeStore } from "@/lib/store";
 import type { ThemePref } from "@/lib/store";
@@ -22,10 +23,10 @@ export const Route = createFileRoute("/feed")({
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return `hace ${mins}m`;
+  if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `hace ${hrs}h`;
-  return `hace ${Math.floor(hrs / 24)}d`;
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 function fmtLikes(n: number): string {
@@ -39,9 +40,9 @@ function getStatus(score: number | null): "hot" | "pivot" | "silence" {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  hot: "En movimiento",
-  pivot: "Pivoteando",
-  silence: "Silencio",
+  hot: "Moving",
+  pivot: "Shifting",
+  silence: "Silence",
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -141,7 +142,7 @@ function AccountCard({ account }: { account: FeedAccount }) {
                 <ScoreCircle score={briefing.engagementScore} />
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase mb-1">
-                    Post más fuerte
+                    Top post
                   </p>
                   <p className="text-xs text-base-content/80 leading-relaxed">
                     {briefing.topPostSummary}
@@ -159,7 +160,7 @@ function AccountCard({ account }: { account: FeedAccount }) {
             )}
           </>
         ) : (
-          <p className="text-sm text-base-content/40 italic">Aún sin briefing — en cola.</p>
+          <p className="text-sm text-base-content/40 italic">No briefing yet — queued.</p>
         )}
       </div>
 
@@ -171,7 +172,7 @@ function AccountCard({ account }: { account: FeedAccount }) {
           className="w-full py-3 border-t border-base-200 text-xs text-base-content/40 hover:text-base-content/60 transition-colors flex items-center justify-center gap-1.5"
         >
           <span>{expanded ? "▲" : "▼"}</span>
-          {expanded ? "cerrar" : "ver últimos posts"}
+          {expanded ? "close" : "view latest posts"}
         </button>
       )}
 
@@ -179,7 +180,7 @@ function AccountCard({ account }: { account: FeedAccount }) {
       {expanded && posts.length > 0 && (
         <div className="px-5 pb-4 border-t border-base-200">
           <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase py-3">
-            Últimos {posts.length} posts
+            Latest {posts.length} posts
           </p>
           {posts.map((p) => <PostRow key={p.id} text={p.text} likes={p.likes} />)}
         </div>
@@ -199,6 +200,23 @@ const THEME_ICON: Record<ThemePref, React.ReactNode> = {
 function FeedPage() {
   const accounts: FeedAccount[] = Route.useLoaderData() ?? [];
   const { pref, cycle } = useThemeStore();
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+  const [queued, setQueued] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await triggerFetch();
+      setQueued(true);
+      setTimeout(() => {
+        router.invalidate();
+        setQueued(false);
+      }, 4000);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const latestUpdate = accounts
     .map((a) => a.briefing?.generatedAt)
@@ -223,8 +241,8 @@ function FeedPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-base-content tracking-tight">TweetSip</h1>
             <p className="text-xs text-base-content/40 mt-0.5">
-              {accounts.length} {accounts.length === 1 ? "competidor" : "competidores"}
-              {latestUpdate ? ` · actualizado ${timeAgo(latestUpdate)}` : ""}
+              {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
+              {latestUpdate ? ` · updated ${timeAgo(latestUpdate)}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -238,6 +256,15 @@ function FeedPage() {
                 {gapsCount} GAPS
               </span>
             )}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
+              aria-label="Refresh feed"
+            >
+              <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            </button>
             <button
               type="button"
               onClick={cycle}
@@ -256,6 +283,13 @@ function FeedPage() {
           </div>
         </div>
 
+        {/* Queued notice */}
+        {queued && (
+          <div className="bg-base-100 rounded-box border border-success/30 px-4 py-3 text-sm text-success/80">
+            Jobs queued — updating in a few seconds…
+          </div>
+        )}
+
         {/* Global insight */}
         {topInsight && (
           <div className="bg-base-100 rounded-box border border-base-200 px-4 py-3">
@@ -266,7 +300,7 @@ function FeedPage() {
         {/* Cards */}
         {accounts.length === 0 ? (
           <div className="text-center py-20 text-base-content/30 text-sm">
-            Aún no tienes cuentas. <a href="/onboarding" className="underline">Agrega una.</a>
+            No accounts yet. <a href="/onboarding" className="underline">Add one.</a>
           </div>
         ) : (
           accounts.map((account) => <AccountCard key={account.id} account={account} />)

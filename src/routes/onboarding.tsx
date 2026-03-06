@@ -40,7 +40,7 @@ function HandleTag({ handle }: { handle: string }) {
         type="button"
         onClick={() => removeHandle(handle)}
         className="btn btn-ghost btn-circle btn-sm focus:outline-none text-base-content/30 hover:text-base-content/60 hover:bg-transparent"
-        aria-label={`Eliminar ${handle}`}
+        aria-label={`Remove ${handle}`}
       >
         <X size={13} />
       </button>
@@ -54,9 +54,9 @@ function AddHandleForm() {
   const [error, action, pending] = useActionState(
     async (_: string | undefined, formData: FormData) => {
       const raw = (formData.get("handle") as string).trim().replace(/^@/, "");
-      if (!raw) return "Ingresa un handle válido";
-      if (handles.length >= 5) return "Máximo 5 cuentas";
-      if (handles.includes(`@${raw}`)) return "Ya la agregaste";
+      if (!raw) return "Enter a valid handle";
+      if (handles.length >= 5) return "Maximum 5 accounts";
+      if (handles.includes(`@${raw}`)) return "Already added";
       addHandle(`@${raw}`);
     },
     undefined,
@@ -67,7 +67,7 @@ function AddHandleForm() {
   return (
     <div className="space-y-2">
       <form action={action} className="flex gap-2">
-        <label htmlFor="handle" className="sr-only">Handle de X</label>
+        <label htmlFor="handle" className="sr-only">X handle</label>
         <input
           id="handle"
           name="handle"
@@ -80,7 +80,7 @@ function AddHandleForm() {
           disabled={pending}
           className="btn btn-neutral btn-square focus:outline-none"
           style={{ borderRadius: 14 }}
-          aria-label="Agregar cuenta"
+          aria-label="Add account"
         >
           {pending ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
         </button>
@@ -109,10 +109,10 @@ function StepAccounts() {
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-extrabold text-base-content tracking-tight">
-          ¿A quién quieres seguir?
+          Who do you want to track?
         </h1>
         <p className="text-sm text-base-content/50 leading-relaxed">
-          Agrega hasta 5 cuentas de X — competidores, referentes, o cualquier cuenta que te importe.
+          Add up to 5 X accounts — competitors, references, or anyone you care about.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ function StepAccounts() {
       <AddHandleForm />
 
       <div className="text-center text-xs text-base-content/30">
-        {handles.length}/5 cuentas agregadas
+        {handles.length}/5 accounts added
       </div>
 
       <button
@@ -137,7 +137,7 @@ function StepAccounts() {
         {saving ? (
           <Loader2 size={15} className="animate-spin" />
         ) : (
-          <>Ir a mi feed <ArrowRight size={15} /></>
+          <>Go to my feed <ArrowRight size={15} /></>
         )}
       </button>
     </div>

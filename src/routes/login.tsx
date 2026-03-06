@@ -30,11 +30,10 @@ function LoginPage() {
         <div className="max-w-sm w-full px-6 text-center">
           <div className="text-4xl mb-6">✉️</div>
           <h1 className="text-2xl font-bold text-base-content mb-3">
-            Revisa tu email
+            Check your email
           </h1>
           <p className="text-base-content/60 text-sm leading-relaxed">
-            Te enviamos un magic link a <strong>{state.email}</strong>. Abre el
-            link para continuar.
+            We sent a magic link to <strong>{state.email}</strong>. Open it to continue.
           </p>
         </div>
       </div>
@@ -48,7 +47,7 @@ function LoginPage() {
           <div className="text-3xl font-extrabold text-base-content tracking-tight mb-2">
             TweetSip ☕
           </div>
-          <p className="text-base-content/50 text-sm">Tu digest diario de X</p>
+          <p className="text-base-content/50 text-sm">Your daily X digest</p>
         </div>
 
         <form action={action} className="space-y-4">
@@ -63,7 +62,7 @@ function LoginPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="tu@email.com"
+              placeholder="you@email.com"
               required
               className="input input-bordered w-full bg-white border-base-300"
             />
@@ -79,13 +78,13 @@ function LoginPage() {
             {pending ? (
               <span className="loading loading-spinner loading-sm" />
             ) : (
-              "Continuar con magic link →"
+              "Continue with magic link →"
             )}
           </button>
         </form>
 
         <p className="text-center text-xs text-base-content/30 mt-8">
-          Sin contraseñas. Solo un link en tu email.
+          No passwords. Just a link in your inbox.
         </p>
       </div>
     </div>
