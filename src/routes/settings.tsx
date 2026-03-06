@@ -55,6 +55,7 @@ const TIMEZONES = [
 type SaveState = { ok?: boolean; error?: string } | null
 
 function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
+  const router = useRouter()
   const [state, action, pending] = useActionState<SaveState, FormData>(async (_, formData) => {
     try {
       await updateProfile({
@@ -63,6 +64,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
           timezone: formData.get("timezone") as string,
         },
       })
+      router.invalidate()
       return { ok: true }
     } catch {
       return { error: "Failed to save changes" }
@@ -83,7 +85,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
             type="text"
             defaultValue={profile.name}
             required
-            className="input input-bordered w-full"
+            className="input w-full bg-base-200"
           />
         </div>
         <div>
@@ -95,7 +97,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
             type="email"
             value={profile.email}
             disabled
-            className="input input-bordered w-full opacity-50"
+            className="input w-full bg-base-200 opacity-50"
           />
         </div>
         <div>
@@ -106,7 +108,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
             id="timezone"
             name="timezone"
             defaultValue={profile.timezone ?? "America/New_York"}
-            className="select select-bordered w-full"
+            className="select w-full bg-base-200"
           >
             {TIMEZONES.map((tz) => (
               <option key={tz} value={tz}>
@@ -214,7 +216,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
             name="handle"
             type="text"
             placeholder="@handle"
-            className="input input-bordered input-sm flex-1"
+            className="input input-sm flex-1 bg-base-200"
           />
           <button
             type="submit"
@@ -232,6 +234,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
 }
 
 function NotificationsSection({ current }: { current: "daily" | "weekly" | "never" | null }) {
+  const router = useRouter()
   const options = [
     { value: "daily", label: "Daily digest" },
     { value: "weekly", label: "Weekly digest" },
@@ -243,6 +246,7 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
       await updateNotifications({
         data: { frequency: formData.get("frequency") as "daily" | "weekly" | "never" },
       })
+      router.invalidate()
       return { ok: true }
     } catch {
       return { error: "Failed to save" }
