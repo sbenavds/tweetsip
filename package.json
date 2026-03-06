@@ -14,7 +14,10 @@
     "cf-typegen": "wrangler types",
     "check": "biome check ./src --write",
     "typecheck": "tsc --noEmit",
-    "generate-types": "wrangler types"
+    "generate-types": "wrangler types",
+    "db": "wrangler d1 execute tweetsip-db-staging --remote --command",
+    "db:migrate": "wrangler d1 migrations apply tweetsip-db-staging --remote",
+    "logs": "wrangler tail"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.13.8",
