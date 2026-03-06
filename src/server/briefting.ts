@@ -57,7 +57,11 @@ export async function generateBriefing(
     throw new Error("Unexpected response from Workers AI");
   }
 
-  const content: BriefingContent = briefingSchema.parse(JSON.parse(result.response));
+  const raw = result.response;
+  const jsonStart = raw.indexOf("{");
+  const jsonEnd = raw.lastIndexOf("}");
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON object found in AI response");
+  const content: BriefingContent = briefingSchema.parse(JSON.parse(raw.slice(jsonStart, jsonEnd + 1)));
 
   await db.insert(briefings).values({
     id: crypto.randomUUID(),
