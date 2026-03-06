@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFeed } from "@/functions/feed";
@@ -181,11 +181,10 @@ function PostRow({ text, likes }: { text: string; likes: number }) {
   );
 }
 
-function AccountCard({ account, polling }: { account: FeedAccount; polling: boolean }) {
+function AccountCard({ account }: { account: FeedAccount }) {
   const [expanded, setExpanded] = useState(false);
   const { briefing, posts } = account;
   const score = briefing?.engagementScore ?? null;
-  const isFresh = !briefing && posts.length === 0;
 
   return (
     <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
@@ -228,10 +227,8 @@ function AccountCard({ account, polling }: { account: FeedAccount; polling: bool
               </div>
             )}
           </>
-        ) : isFresh || polling ? (
-          <BriefingSkeleton />
         ) : (
-          <p className="text-sm text-base-content/40 italic">No briefing yet — queued.</p>
+          <BriefingSkeleton />
         )}
       </div>
 
@@ -272,41 +269,19 @@ function FeedPage() {
   const { pref, cycle } = useThemeStore();
   const [isPending, startTransition] = useTransition();
 
-  // null = idle, number = briefing count at time of trigger (polling active)
-  const [briefingSnapshot, setBriefingSnapshot] = useState<number | null>(null);
-  const polling = briefingSnapshot !== null;
-
-  const { data: accounts = [] } = useQuery({
+  const { data: accounts = [], isFetching } = useQuery({
     ...feedQueryOptions(),
     initialData: loaderData,
-    refetchInterval: polling ? 3000 : false,
+    // Poll every 3s as long as any account is missing a briefing.
+    // Stops automatically once all briefings arrive — no state or effects needed.
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((a) => !a.briefing) ? 3000 : false,
   });
 
-  // Auto-start polling when fresh accounts are detected (just added, fetch in progress)
-  const hasFreshAccounts = accounts.some((a) => a.posts.length === 0 && !a.briefing);
-  useEffect(() => {
-    if (hasFreshAccounts && briefingSnapshot === null) {
-      setBriefingSnapshot(accounts.filter((a) => a.briefing).length);
-    }
-  }, [hasFreshAccounts]);
-
-  // Stop polling when new briefings arrive
-  useEffect(() => {
-    if (briefingSnapshot === null) return;
-    const count = accounts.filter((a) => a.briefing).length;
-    if (count > briefingSnapshot) setBriefingSnapshot(null);
-  }, [accounts, briefingSnapshot]);
-
-  // Hard stop at 30s
-  useEffect(() => {
-    if (briefingSnapshot === null) return;
-    const id = setTimeout(() => setBriefingSnapshot(null), 30_000);
-    return () => clearTimeout(id);
-  }, [briefingSnapshot]);
+  const polling = isFetching || accounts.some((a) => !a.briefing);
 
   function handleRefresh() {
     startTransition(async () => {
-      setBriefingSnapshot(accounts.filter((a) => a.briefing).length);
       await triggerFetch();
       queryClient.invalidateQueries({ queryKey: ["feed"] });
     });
@@ -386,7 +361,7 @@ function FeedPage() {
 
         {/* Cards */}
         {accounts.map((account) => (
-          <AccountCard key={account.id} account={account} polling={polling} />
+          <AccountCard key={account.id} account={account} />
         ))}
       </div>
     </div>
