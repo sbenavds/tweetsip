@@ -38,18 +38,22 @@ export async function syncAccountPosts(
 
   if (xPosts.length === 0) return
 
-  await db
-    .insert(posts)
-    .values(
-      xPosts.map((p) => ({
-        id: p.id,
-        accountId,
-        text: p.text,
-        likes: p.public_metrics.like_count,
-        reposts: p.public_metrics.repost_count,
-        replies: p.public_metrics.reply_count,
-        postedAt: new Date(p.created_at),
-      }))
-    )
-    .onConflictDoNothing()
+  const rows = xPosts.map((p) => ({
+    id: p.id,
+    accountId,
+    text: p.text,
+    likes: p.public_metrics.like_count,
+    reposts: p.public_metrics.repost_count,
+    replies: p.public_metrics.reply_count,
+    postedAt: new Date(p.created_at),
+  }))
+
+  // D1 has a 100-bound-parameter limit per query; batch at 10 rows (7 cols each = 70 params)
+  const BATCH_SIZE = 10
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    await db
+      .insert(posts)
+      .values(rows.slice(i, i + BATCH_SIZE))
+      .onConflictDoNothing()
+  }
 }

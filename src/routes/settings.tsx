@@ -159,7 +159,9 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
         router.invalidate()
         queryClient.invalidateQueries({ queryKey: ["feed"] })
       } catch (e) {
-        return e instanceof Error ? e.message : "Failed to add account"
+        const msg = e instanceof Error ? e.message : ""
+        if (msg.includes("already") || msg.includes("duplicate")) return "Account already added"
+        return "Failed to add account"
       }
     },
     undefined
