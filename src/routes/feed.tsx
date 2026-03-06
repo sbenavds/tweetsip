@@ -13,8 +13,7 @@ export const Route = createFileRoute("/feed")({
   validateSearch: (
     search: Record<string, unknown>
   ): { view?: "sip" | "insights"; account?: string } => ({
-    view:
-      search.view === "insights" ? "insights" : search.view === "sip" ? "sip" : undefined,
+    view: search.view === "insights" ? "insights" : search.view === "sip" ? "sip" : undefined,
     account: typeof search.account === "string" ? search.account : undefined,
   }),
   loader: async () => {
@@ -597,7 +596,9 @@ function FeedPage() {
       : { type: "sip", filterId: search.account ?? null }
 
   function setFilter(id: string | null) {
-    navigate({ search: id ? { view: "sip", account: id } : { view: undefined, account: undefined } })
+    navigate({
+      search: id ? { view: "sip", account: id } : { view: undefined, account: undefined },
+    })
   }
   function goInsights(id: string) {
     navigate({ search: { view: "insights", account: id } })
