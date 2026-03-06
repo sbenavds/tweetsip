@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { ArrowLeft, X, Plus, Loader2 } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { addAccount, deleteAccount as deleteTrackedAccount } from "@/functions/accounts";
@@ -116,12 +116,21 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, startDelete] = useTransition();
 
+  const [optimisticAccounts, addOptimistic] = useOptimistic(
+    accounts,
+    (state, handle: string) => [
+      ...state,
+      { id: `optimistic-${handle}`, handle: `@${handle}`, name: handle, avatarUrl: null },
+    ],
+  );
+
   const [addState, addAction, addPending] = useActionState(
     async (_: string | undefined, formData: FormData) => {
       const raw = (formData.get("handle") as string).trim().replace(/^@/, "");
       if (!raw) return "Enter a valid handle";
       if (accounts.length >= 5) return "Maximum 5 accounts";
       try {
+        addOptimistic(raw);
         await addAccount({ data: { handle: raw } });
         router.invalidate();
       } catch (e) {
@@ -147,26 +156,30 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-base-content">Accounts</h2>
-        <span className="text-xs text-base-content/40">{accounts.length}/5</span>
+        <span className="text-xs text-base-content/40">{optimisticAccounts.length}/5</span>
       </div>
 
-      {accounts.length > 0 && (
+      {optimisticAccounts.length > 0 && (
         <ul className="space-y-2">
-          {accounts.map((a) => (
+          {optimisticAccounts.map((a) => (
             <li key={a.id} className="flex items-center justify-between py-2 border-b border-base-200 last:border-0">
               <div>
-                <p className="text-sm font-medium text-base-content">{a.name ?? a.handle}</p>
+                <p className={`text-sm font-medium text-base-content ${a.id.startsWith("optimistic-") ? "opacity-50" : ""}`}>
+                  {a.name ?? a.handle}
+                </p>
                 <p className="text-xs text-base-content/40">{a.handle}</p>
               </div>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => handleDelete(a.id)}
-                className="btn btn-ghost btn-circle btn-xs text-base-content/30 hover:text-error hover:bg-transparent"
-                aria-label={`Remove ${a.handle}`}
-              >
-                <X size={13} />
-              </button>
+              {!a.id.startsWith("optimistic-") && (
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => handleDelete(a.id)}
+                  className="btn btn-ghost btn-circle btn-xs text-base-content/30 hover:text-error hover:bg-transparent"
+                  aria-label={`Remove ${a.handle}`}
+                >
+                  <X size={13} />
+                </button>
+              )}
             </li>
           ))}
         </ul>

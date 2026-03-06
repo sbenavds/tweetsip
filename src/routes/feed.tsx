@@ -185,6 +185,7 @@ function AccountCard({ account, polling }: { account: FeedAccount; polling: bool
   const [expanded, setExpanded] = useState(false);
   const { briefing, posts } = account;
   const score = briefing?.engagementScore ?? null;
+  const isFresh = !briefing && posts.length === 0;
 
   return (
     <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
@@ -227,7 +228,7 @@ function AccountCard({ account, polling }: { account: FeedAccount; polling: bool
               </div>
             )}
           </>
-        ) : polling ? (
+        ) : isFresh || polling ? (
           <BriefingSkeleton />
         ) : (
           <p className="text-sm text-base-content/40 italic">No briefing yet — queued.</p>
@@ -280,6 +281,14 @@ function FeedPage() {
     initialData: loaderData,
     refetchInterval: polling ? 3000 : false,
   });
+
+  // Auto-start polling when fresh accounts are detected (just added, fetch in progress)
+  const hasFreshAccounts = accounts.some((a) => a.posts.length === 0 && !a.briefing);
+  useEffect(() => {
+    if (hasFreshAccounts && briefingSnapshot === null) {
+      setBriefingSnapshot(accounts.filter((a) => a.briefing).length);
+    }
+  }, [hasFreshAccounts]);
 
   // Stop polling when new briefings arrive
   useEffect(() => {
