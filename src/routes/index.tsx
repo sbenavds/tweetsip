@@ -59,7 +59,7 @@ function LandingPage() {
             alt="Accounts flow into AI, AI generates a summarized digest"
             className="w-full"
           />
-          <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-base-200 via-base-200/60 to-transparent" />
+          <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-base-200 to-transparent" />
         </div>
       </section>
 

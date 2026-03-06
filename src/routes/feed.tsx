@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { ChevronDown, ChevronUp, Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react"
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { getFeed } from "@/functions/feed"
 import { triggerFetch } from "@/functions/scheduler"
 import { feedQueryOptions } from "@/lib/queries/feed"
@@ -218,7 +218,6 @@ function AccountCard({ account }: { account: FeedAccount }) {
   return (
     <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
       <div className="p-5 space-y-4">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Avatar name={account.name} avatarUrl={account.avatarUrl} />
           <div className="flex-1 min-w-0">
@@ -233,7 +232,6 @@ function AccountCard({ account }: { account: FeedAccount }) {
         {briefing ? (
           <>
             <p className="text-sm text-base-content leading-relaxed">{briefing.moment}</p>
-
             {briefing.topPostSummary && (
               <div className="bg-base-200 rounded-xl p-4 flex gap-3">
                 <ScoreCircle score={briefing.engagementScore} />
@@ -247,7 +245,6 @@ function AccountCard({ account }: { account: FeedAccount }) {
                 </div>
               </div>
             )}
-
             {briefing.forYou && (
               <div className="bg-base-200/60 rounded-xl p-4 flex gap-2">
                 <span className="text-base-content/40 text-sm mt-0.5">→</span>
@@ -285,6 +282,26 @@ function AccountCard({ account }: { account: FeedAccount }) {
   )
 }
 
+// ---- Scan status banner ----
+
+type ScanStatus = "idle" | "scanning" | "done_new" | "done_same"
+
+function ScanBanner({ status }: { status: ScanStatus }) {
+  if (status === "idle") return null
+  return (
+    <div className="flex items-center gap-2 text-xs text-base-content/50 transition-all">
+      {status === "scanning" && <RefreshCw size={11} className="animate-spin shrink-0" />}
+      {status === "scanning" && "Sipping fresh intel…"}
+      {status === "done_new" && (
+        <>
+          <span className="text-success">✦</span> Briefings updated
+        </>
+      )}
+      {status === "done_same" && "All caught up · nothing new"}
+    </div>
+  )
+}
+
 // ---- Page ----
 
 const THEME_ICON: Record<ThemePref, React.ReactNode> = {
@@ -298,18 +315,46 @@ function FeedPage() {
   const queryClient = useQueryClient()
   const { pref, cycle } = useThemeStore()
   const [isPending, startTransition] = useTransition()
+  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle")
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(null)
 
   const { data: accounts = [], isFetching } = useQuery({
     ...feedQueryOptions(),
     initialData: loaderData,
-    // Poll every 3s as long as any account is missing a briefing.
-    // Stops automatically once all briefings arrive — no state or effects needed.
-    refetchInterval: (query) => ((query.state.data ?? []).some((a) => !a.briefing) ? 3000 : false),
+    refetchInterval: (query) => {
+      const data = query.state.data ?? []
+      if (data.some((a) => !a.briefing)) return 3000
+      if (scanStatus === "scanning") return 3000
+      return false
+    },
   })
 
-  const polling = isFetching || accounts.some((a) => !a.briefing)
+  // Detect new briefings after manual refresh
+  useEffect(() => {
+    if (scanStatus !== "scanning" || isFetching || !refreshedAt) return
+    const hasNew = accounts.some(
+      (a) => a.briefing?.generatedAt && new Date(a.briefing.generatedAt).getTime() > refreshedAt
+    )
+    if (!hasNew) return
+    setScanStatus("done_new")
+    setRefreshedAt(null)
+  }, [accounts, isFetching, scanStatus, refreshedAt])
+
+  // Auto-dismiss done states after 3s, and timeout scanning after 45s
+  useEffect(() => {
+    if (scanStatus === "idle") return
+    const timeout = scanStatus === "scanning" ? 45000 : 3000
+    const timer = setTimeout(() => {
+      setScanStatus("idle")
+      setRefreshedAt(null)
+    }, timeout)
+    return () => clearTimeout(timer)
+  }, [scanStatus])
 
   function handleRefresh() {
+    const now = Date.now()
+    setRefreshedAt(now)
+    setScanStatus("scanning")
     startTransition(async () => {
       await triggerFetch()
       queryClient.invalidateQueries({ queryKey: ["feed"] })
@@ -321,13 +366,6 @@ function FeedPage() {
     .filter(Boolean)
     .sort()
     .at(-1)
-
-  const hotCount = accounts.filter(
-    (a) => getStatus(a.briefing?.engagementScore ?? null) === "hot"
-  ).length
-  const gapsCount = accounts.filter(
-    (a) => getStatus(a.briefing?.engagementScore ?? null) === "silence"
-  ).length
 
   const topInsight = accounts
     .filter((a) => a.briefing?.forYou)
@@ -347,24 +385,17 @@ function FeedPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {hotCount > 0 && (
-              <span className="badge badge-sm font-bold text-error border-error/30 bg-error/10">
-                {hotCount} HOT
-              </span>
-            )}
-            {gapsCount > 0 && (
-              <span className="badge badge-sm font-bold text-success border-success/30 bg-success/10">
-                {gapsCount} GAPS
-              </span>
-            )}
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={isPending}
+              disabled={isPending || scanStatus === "scanning"}
               className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
               aria-label="Refresh feed"
             >
-              <RefreshCw size={15} className={isPending || polling ? "animate-spin" : ""} />
+              <RefreshCw
+                size={15}
+                className={scanStatus === "scanning" || isFetching ? "animate-spin" : ""}
+              />
             </button>
             <button
               type="button"
@@ -384,8 +415,11 @@ function FeedPage() {
           </div>
         </div>
 
+        {/* Scan status banner */}
+        <ScanBanner status={scanStatus} />
+
         {/* Global insight */}
-        {topInsight && (
+        {topInsight && scanStatus === "idle" && (
           <div className="bg-base-100 rounded-box border border-base-200 px-4 py-3">
             <p className="text-sm text-base-content/60 italic">◇ {topInsight}</p>
           </div>
