@@ -1,5 +1,5 @@
 import { createGroq } from "@ai-sdk/groq"
-import { generateObject } from "ai"
+import { generateText } from "ai"
 import { eq } from "drizzle-orm"
 import type { DrizzleD1Database } from "drizzle-orm/d1"
 import { z } from "zod"
@@ -97,12 +97,16 @@ export async function generateBriefing(
     },
   })
 
-  const { object: content } = await generateObject({
+  const { text } = await generateText({
     model: groq("llama-3.3-70b-versatile"),
-    schema: briefingSchema,
     system: SYSTEM_PROMPT,
-    prompt: `Analyze these ${recentPosts.length} recent posts from ${account.handle}:\n\n${postsText}`,
+    prompt: `Analyze these ${recentPosts.length} recent posts from ${account.handle}:\n\n${postsText}\n\nReturn only valid JSON.`,
   })
+
+  const jsonStart = text.indexOf("{")
+  const jsonEnd = text.lastIndexOf("}")
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON in AI response")
+  const content = briefingSchema.parse(JSON.parse(text.slice(jsonStart, jsonEnd + 1)))
 
   await db.insert(briefings).values({
     id: crypto.randomUUID(),
