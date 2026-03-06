@@ -45,15 +45,15 @@ function getStatus(score: number | null): "hot" | "pivot" | "silence" {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  hot: "Moving",
+  hot: "Active",
   pivot: "Shifting",
-  silence: "Silence",
+  silence: "Quiet",
 }
 
 const STATUS_COLOR: Record<string, string> = {
   hot: "text-success",
   pivot: "text-warning",
-  silence: "text-base-content/40",
+  silence: "text-base-content/30",
 }
 
 // ---- Skeletons ----
@@ -68,14 +68,13 @@ function BriefingSkeleton() {
       <div className="bg-base-200 rounded-xl p-4 flex gap-3">
         <div className="w-10 h-10 rounded-full bg-base-300 shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-2 bg-base-300 rounded w-16" />
           <div className="h-3 bg-base-300 rounded w-full" />
           <div className="h-3 bg-base-300 rounded w-3/4" />
         </div>
       </div>
-      <div className="bg-base-200/60 rounded-xl p-4">
+      <div className="border-l-2 border-base-300 pl-3 space-y-2">
         <div className="h-3 bg-base-300 rounded w-full" />
-        <div className="h-3 bg-base-300 rounded w-2/3 mt-2" />
+        <div className="h-3 bg-base-300 rounded w-2/3" />
       </div>
     </div>
   )
@@ -83,7 +82,7 @@ function BriefingSkeleton() {
 
 function AccountCardSkeleton() {
   return (
-    <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden animate-pulse">
+    <div className="bg-base-100 rounded-box border border-base-200 overflow-hidden animate-pulse">
       <div className="p-5 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-base-300 shrink-0" />
@@ -103,10 +102,10 @@ function FeedSkeleton() {
   return (
     <div className="min-h-screen bg-base-200">
       <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className="space-y-2 animate-pulse">
-            <div className="h-7 bg-base-300 rounded w-28" />
-            <div className="h-3 bg-base-300 rounded w-24" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="space-y-1.5 animate-pulse">
+            <div className="h-6 bg-base-300 rounded w-24" />
+            <div className="h-3 bg-base-300 rounded w-32" />
           </div>
           <div className="flex gap-2 animate-pulse">
             {[0, 1, 2].map((i) => (
@@ -178,8 +177,8 @@ function ScoreCircle({ score }: { score: number }) {
 function StatusBadge({ score }: { score: number | null }) {
   const s = getStatus(score)
   return (
-    <span className={`flex items-center gap-1 text-xs font-semibold ${STATUS_COLOR[s]}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+    <span className={`flex items-center gap-1.5 text-xs font-medium ${STATUS_COLOR[s]}`}>
+      <span className="w-2 h-2 rounded-full bg-current shrink-0" />
       {STATUS_LABEL[s]}
     </span>
   )
@@ -191,21 +190,18 @@ function Avatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | 
     return <img src={avatarUrl} alt={name ?? ""} className="w-11 h-11 rounded-full object-cover" />
   }
   return (
-    <div className="w-11 h-11 rounded-full bg-base-200 flex items-center justify-center text-base-content/60 font-bold text-base">
+    <div className="w-11 h-11 rounded-full bg-base-200 flex items-center justify-center text-base-content/50 font-bold text-base">
       {letter}
     </div>
   )
 }
 
 function PostRow({ text, likes }: { text: string; likes: number }) {
-  const truncated = text.length > 60 ? `${text.slice(0, 60)}...` : text
+  const truncated = text.length > 60 ? `${text.slice(0, 60)}…` : text
   return (
     <div className="flex items-start justify-between gap-3 py-2.5 border-b border-base-200 last:border-0">
-      <div className="flex items-start gap-2 min-w-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-base-300 mt-1.5 shrink-0" />
-        <span className="text-xs text-base-content/70 leading-relaxed">{truncated}</span>
-      </div>
-      <span className="text-xs text-base-content/40 shrink-0 font-medium">{fmtLikes(likes)}</span>
+      <span className="text-xs text-base-content/60 leading-relaxed min-w-0">{truncated}</span>
+      <span className="text-xs text-base-content/35 shrink-0 tabular-nums">{fmtLikes(likes)}</span>
     </div>
   )
 }
@@ -214,41 +210,45 @@ function AccountCard({ account }: { account: FeedAccount }) {
   const [expanded, setExpanded] = useState(false)
   const { briefing, posts } = account
   const score = briefing?.engagementScore ?? null
+  const status = getStatus(score)
 
   return (
-    <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
+    <div className="relative bg-base-100 rounded-box border border-base-200 overflow-hidden">
+      {/* Status accent — only for hot accounts */}
+      {status === "hot" && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-success" />}
+
       <div className="p-5 space-y-4">
+        {/* Header */}
         <div className="flex items-center gap-3">
           <Avatar name={account.name} avatarUrl={account.avatarUrl} />
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-base-content leading-tight truncate">
+            <p className="font-semibold text-base-content leading-tight truncate">
               {account.name ?? account.handle}
             </p>
-            <p className="text-xs text-base-content/40">{account.handle}</p>
+            <p className="text-xs text-base-content/40 mt-0.5">{account.handle}</p>
           </div>
           <StatusBadge score={score} />
         </div>
 
         {briefing ? (
           <>
-            <p className="text-sm text-base-content leading-relaxed">{briefing.moment}</p>
+            {/* Moment — primary content */}
+            <p className="text-sm text-base-content/80 leading-relaxed">{briefing.moment}</p>
+
+            {/* Top post — score anchors the block visually */}
             {briefing.topPostSummary && (
-              <div className="bg-base-200 rounded-xl p-4 flex gap-3">
+              <div className="bg-base-200 rounded-xl p-4 flex gap-3 items-center">
                 <ScoreCircle score={briefing.engagementScore} />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase mb-1">
-                    Top post
-                  </p>
-                  <p className="text-xs text-base-content/80 leading-relaxed">
-                    {briefing.topPostSummary}
-                  </p>
-                </div>
+                <p className="text-xs text-base-content/70 leading-relaxed">
+                  {briefing.topPostSummary}
+                </p>
               </div>
             )}
+
+            {/* For you — editorial left rule, no background */}
             {briefing.forYou && (
-              <div className="bg-base-200/60 rounded-xl p-4 flex gap-2">
-                <span className="text-base-content/40 text-sm mt-0.5">→</span>
-                <p className="text-sm text-base-content/80 leading-relaxed">{briefing.forYou}</p>
+              <div className="border-l-2 border-base-content/15 pl-3">
+                <p className="text-sm text-base-content/60 leading-relaxed">{briefing.forYou}</p>
               </div>
             )}
           </>
@@ -263,16 +263,16 @@ function AccountCard({ account }: { account: FeedAccount }) {
           onClick={() => setExpanded((v) => !v)}
           className="w-full px-5 py-3 border-t border-base-200 text-xs text-base-content/40 hover:text-base-content/60 transition-colors flex items-center justify-between"
         >
-          <span className="font-bold uppercase tracking-widest">{posts.length} posts</span>
+          <span>{posts.length} posts</span>
           <span className="flex items-center gap-1">
-            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             {expanded ? "close" : "view"}
           </span>
         </button>
       )}
 
       {expanded && posts.length > 0 && (
-        <div className="px-5 pb-4">
+        <div className="px-5 pt-1 pb-4">
           {posts.map((p) => (
             <PostRow key={p.id} text={p.text} likes={p.likes} />
           ))}
@@ -282,27 +282,9 @@ function AccountCard({ account }: { account: FeedAccount }) {
   )
 }
 
-// ---- Scan status banner ----
+// ---- Page ----
 
 type ScanStatus = "idle" | "scanning" | "done_new" | "done_same"
-
-function ScanBanner({ status }: { status: ScanStatus }) {
-  if (status === "idle") return null
-  return (
-    <div className="flex items-center gap-2 text-xs text-base-content/50 transition-all">
-      {status === "scanning" && <RefreshCw size={11} className="animate-spin shrink-0" />}
-      {status === "scanning" && "Sipping fresh intel…"}
-      {status === "done_new" && (
-        <>
-          <span className="text-success">✦</span> Briefings updated
-        </>
-      )}
-      {status === "done_same" && "All caught up · nothing new"}
-    </div>
-  )
-}
-
-// ---- Page ----
 
 const THEME_ICON: Record<ThemePref, React.ReactNode> = {
   tweetsip: <Sun size={15} />,
@@ -314,7 +296,7 @@ function FeedPage() {
   const loaderData = Route.useLoaderData()
   const queryClient = useQueryClient()
   const { pref, cycle } = useThemeStore()
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle")
   const [refreshedAt, setRefreshedAt] = useState<number | null>(null)
 
@@ -340,15 +322,15 @@ function FeedPage() {
     setRefreshedAt(null)
   }, [accounts, isFetching, scanStatus, refreshedAt])
 
-  // Auto-dismiss done states after 3s, and timeout scanning after 45s
+  // Auto-dismiss done states after 3s; timeout scanning after 45s
   useEffect(() => {
     if (scanStatus === "idle") return
-    const timeout = scanStatus === "scanning" ? 45000 : 3000
-    const timer = setTimeout(() => {
+    const ms = scanStatus === "scanning" ? 45000 : 3000
+    const t = setTimeout(() => {
       setScanStatus("idle")
       setRefreshedAt(null)
-    }, timeout)
-    return () => clearTimeout(timer)
+    }, ms)
+    return () => clearTimeout(t)
   }, [scanStatus])
 
   function handleRefresh() {
@@ -367,6 +349,16 @@ function FeedPage() {
     .sort()
     .at(-1)
 
+  // Scan status flows through the subtitle — no separate element needed
+  const subtitle = (() => {
+    const n = accounts.length
+    const base = `${n} ${n === 1 ? "account" : "accounts"}`
+    if (scanStatus === "scanning") return `${base} · sipping fresh intel…`
+    if (scanStatus === "done_new") return `${base} · briefings updated`
+    if (scanStatus === "done_same") return `${base} · nothing new`
+    return latestUpdate ? `${base} · updated ${timeAgo(latestUpdate)}` : base
+  })()
+
   const topInsight = accounts
     .filter((a) => a.briefing?.forYou)
     .sort((a, b) => (b.briefing?.engagementScore ?? 0) - (a.briefing?.engagementScore ?? 0))
@@ -376,52 +368,46 @@ function FeedPage() {
     <div className="min-h-screen bg-base-200">
       <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
         {/* Header */}
-        <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-extrabold text-base-content tracking-tight">TweetSip</h1>
-            <p className="text-xs text-base-content/40 mt-0.5">
-              {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
-              {latestUpdate ? ` · updated ${timeAgo(latestUpdate)}` : ""}
-            </p>
+            <h1 className="text-xl font-bold text-base-content tracking-tight">TweetSip</h1>
+            <p className="text-xs text-base-content/50 mt-0.5">{subtitle}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={isPending || scanStatus === "scanning"}
-              className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
+              disabled={scanStatus === "scanning"}
+              className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
               aria-label="Refresh feed"
             >
               <RefreshCw
-                size={15}
+                size={14}
                 className={scanStatus === "scanning" || isFetching ? "animate-spin" : ""}
               />
             </button>
             <button
               type="button"
               onClick={cycle}
-              className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
+              className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
               aria-label="Toggle theme"
             >
               {THEME_ICON[pref]}
             </button>
             <Link
               to="/settings"
-              className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
+              className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
               aria-label="Settings"
             >
-              <Settings size={15} />
+              <Settings size={14} />
             </Link>
           </div>
         </div>
 
-        {/* Scan status banner */}
-        <ScanBanner status={scanStatus} />
-
-        {/* Global insight */}
+        {/* Top insight — editorial pull quote, not a card */}
         {topInsight && scanStatus === "idle" && (
-          <div className="bg-base-100 rounded-box border border-base-200 px-4 py-3">
-            <p className="text-sm text-base-content/60 italic">◇ {topInsight}</p>
+          <div className="border-l-2 border-base-content/20 pl-3 py-0.5">
+            <p className="text-sm text-base-content/50 italic leading-relaxed">{topInsight}</p>
           </div>
         )}
 
