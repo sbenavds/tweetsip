@@ -258,7 +258,7 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
         <div className="space-y-1">
           {options.map((opt) => (
             <label key={opt.value} className="flex items-center gap-3 cursor-pointer py-1.5">
-              <span className="bg-base-200 rounded-full p-0.5 shrink-0">
+              <span className="w-6 h-6 rounded-full bg-base-200 flex items-center justify-center shrink-0">
                 <input
                   type="radio"
                   name="frequency"

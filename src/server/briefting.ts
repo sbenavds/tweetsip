@@ -15,11 +15,20 @@ const briefingSchema = z.object({
 
 type BriefingContent = z.infer<typeof briefingSchema>
 
-const SYSTEM_PROMPT = `You are a social media analyst. Analyze the provided posts and return a JSON object with exactly these fields:
-- moment: a one-sentence summary of the account's current vibe or theme (max 120 chars)
-- topPostSummary: a summary of the most engaging post (max 150 chars)
-- forYou: a personalized insight or recommendation based on the content (max 150 chars)
-- engagementScore: an overall engagement score from 0 to 100 based on likes and reposts`
+const SYSTEM_PROMPT = `You are an intelligence analyst briefing a professional who tracks this X account for strategic or competitive reasons.
+
+Analyze the posts and return a JSON object with exactly these fields:
+
+- moment: What specific narrative or push is this account running RIGHT NOW? Name the angle and intent concretely — not their general topic, but what they are actively doing this week. Max 120 chars.
+- topPostSummary: Why did the top post actually perform? Identify the hook, mechanic, or angle that drove engagement — not what the post said, but why it landed. Max 150 chars.
+- forYou: One sharp, actionable signal. What should the person tracking this account know or do right now — a window to act, a trend to watch, a risk to note? Make it specific. Max 150 chars.
+- engagementScore: 0–100. Use 50 as the baseline for normal engagement on this account. Score 80+ only for genuinely viral or exceptional posts. Under 30 for low traction or silence.
+
+Strict rules:
+- Do NOT restate tweet text or paraphrase what the post said
+- Do NOT write generic descriptions like "sharing content", "promoting their product", or "engaging with followers"
+- Do NOT give obvious advice like "consider engaging with their posts"
+- Every sentence must contain a specific, non-obvious observation`
 
 export async function generateBriefing(
   db: Db,
