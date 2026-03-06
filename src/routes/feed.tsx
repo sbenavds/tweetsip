@@ -24,21 +24,43 @@ export const Route = createFileRoute("/feed")({
   component: FeedPage,
 })
 
-// ---- Types ----
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ViewState = { type: "sip"; filterId: string | null } | { type: "insights"; accountId: string }
 
 type Highlight = { emoji: string; text: string; tone: "positive" | "notable" | "warning" }
 
-// ---- Helpers ----
+// ── Design tokens ─────────────────────────────────────────────────────────────
+// Theme-adaptive colors use CSS vars; accent colors are hardcoded per reference.
 
-function timeAgo(iso: string): string {
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+const T = {
+  surface: "var(--color-base-100)",
+  bg: "var(--color-base-200)",
+  text: "var(--color-base-content)",
+  sub: "color-mix(in srgb, var(--color-base-content) 60%, transparent)",
+  muted: "color-mix(in srgb, var(--color-base-content) 38%, transparent)",
+  divider: "color-mix(in srgb, var(--color-base-content) 7%, transparent)",
+  nav: "rgba(242,244,248,0.96)",
+  blue: "#2563eb",
+  // Insight card tokens
+  greenBg: "#f0fdf4",
+  greenBorder: "#bbf7d0",
+  greenText: "#15803d",
+  blueBg: "#f1f5ff",
+  blueBorder: "#c7d7fd",
+  blueText: "#2563eb",
+  redBg: "#fef2f2",
+  redBorder: "#fecaca",
+  redText: "#dc2626",
+  // Your Move tokens
+  amberBg: "#fffbeb",
+  amberBorder: "#fde68a",
+  amberLabel: "#b45309",
+  amberBody: "#92400e",
+  amberIcon: "#fef3c7",
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -54,67 +76,70 @@ function greeting(): string {
 }
 
 function dateLabel(): string {
-  return new Date()
-    .toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
-    .toUpperCase()
+  return new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  })
+}
+
+function handle(raw: string): string {
+  return raw.startsWith("@") ? raw : `@${raw}`
 }
 
 const AVATAR_PALETTE = [
-  "#1d4ed8",
-  "#dc2626",
-  "#16a34a",
-  "#7c3aed",
-  "#065f46",
-  "#0891b2",
-  "#b45309",
-  "#be185d",
+  "linear-gradient(135deg,#1c3d5a,#2563eb)",
+  "linear-gradient(135deg,#7c1d1d,#dc2626)",
+  "linear-gradient(135deg,#1a3a2a,#16a34a)",
+  "linear-gradient(135deg,#3b1f6e,#7c3aed)",
+  "linear-gradient(135deg,#1a2a1a,#4a7c4a)",
+  "linear-gradient(135deg,#0c3547,#0891b2)",
+  "linear-gradient(135deg,#4a1a0a,#ea580c)",
 ]
 
-function avatarColor(handle: string): string {
-  let h = 0
-  for (const c of handle) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff
-  return AVATAR_PALETTE[h % AVATAR_PALETTE.length]
+function avatarGrad(h: string): string {
+  let v = 0
+  for (const c of h) v = (v * 31 + c.charCodeAt(0)) & 0x7fffffff
+  return AVATAR_PALETTE[v % AVATAR_PALETTE.length]
 }
 
 function todaysThread(accounts: FeedAccount[]): string | null {
-  const withBriefings = accounts.filter((a) => a.briefing)
-  if (withBriefings.length === 0) return null
-  const themes = withBriefings
-    .flatMap((a) => a.briefing?.themes ?? [])
-    .filter(Boolean)
-    .slice(0, 4)
+  const briefed = accounts.filter((a) => a.briefing)
+  if (briefed.length === 0) return null
+  const themes = [...new Set(briefed.flatMap((a) => a.briefing?.themes ?? []))].slice(0, 4)
   if (themes.length >= 2) {
-    return `${withBriefings.length} ${withBriefings.length === 1 ? "account" : "accounts"} covered today. Topics span: ${themes.join(", ")}.`
+    return `${briefed.length} ${briefed.length === 1 ? "account" : "accounts"} covered today. Topics span: ${themes.join(", ")}.`
   }
-  return withBriefings[0].briefing?.moment ?? null
+  return briefed[0].briefing?.moment ?? null
 }
 
-// ---- Avatar component ----
+// ── Avatar ────────────────────────────────────────────────────────────────────
 
-function AccountAvatar({
-  account,
-  size,
-  selected = false,
-}: {
-  account: FeedAccount
-  size: number
-  selected?: boolean
-}) {
+function AvatarCircle({ account, size }: { account: FeedAccount; size: number }) {
   const letter = (account.name ?? account.handle)[0].toUpperCase()
-  const color = avatarColor(account.handle)
-  const img = account.avatarUrl ? (
-    <img
-      src={account.avatarUrl}
-      alt=""
-      style={{ width: size, height: size, borderRadius: "50%", display: "block" }}
-    />
-  ) : (
+  const grad = avatarGrad(account.handle)
+  if (account.avatarUrl) {
+    return (
+      <img
+        src={account.avatarUrl}
+        alt=""
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          display: "block",
+          objectFit: "cover",
+        }}
+      />
+    )
+  }
+  return (
     <div
       style={{
         width: size,
         height: size,
         borderRadius: "50%",
-        background: color,
+        background: grad,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -128,23 +153,9 @@ function AccountAvatar({
       {letter}
     </div>
   )
-
-  if (!selected) return img
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        borderRadius: "0.625rem",
-        padding: 3,
-        border: "2px solid var(--color-base-content)",
-      }}
-    >
-      {img}
-    </div>
-  )
 }
 
-// ---- Skeletons ----
+// ── Skeletons ─────────────────────────────────────────────────────────────────
 
 function FeedSkeleton() {
   return (
@@ -152,26 +163,19 @@ function FeedSkeleton() {
       <div className="max-w-2xl mx-auto px-5 pt-24 pb-10 animate-pulse space-y-5">
         <div className="h-3 bg-base-300 rounded w-40" />
         <div className="h-9 bg-base-300 rounded w-52" />
-        <div className="h-20 bg-white rounded-2xl" />
-        <div className="bg-white rounded-2xl h-48" />
-        {[0, 1].map((i) => (
-          <div key={i} className="bg-white rounded-2xl p-5 space-y-2">
-            <div className="h-3 bg-base-300 rounded w-28" />
-            <div className="h-3 bg-base-300 rounded w-full" />
-            <div className="h-3 bg-base-300 rounded w-4/5" />
-          </div>
-        ))}
+        <div className="h-20 bg-base-100 rounded-2xl" />
+        <div className="bg-base-100 rounded-2xl h-56" />
       </div>
     </div>
   )
 }
 
-// ---- Top bar ----
+// ── Top bar ───────────────────────────────────────────────────────────────────
 
 const THEME_ICON: Record<ThemePref, React.ReactNode> = {
-  tweetsip: <Sun size={16} />,
-  "tweetsip-dark": <Moon size={16} />,
-  system: <Monitor size={16} />,
+  tweetsip: <Sun size={14} />,
+  "tweetsip-dark": <Moon size={14} />,
+  system: <Monitor size={14} />,
 }
 
 function TopBar({
@@ -185,39 +189,98 @@ function TopBar({
 }) {
   const { pref, cycle } = useThemeStore()
   return (
-    <div className="flex items-center justify-between py-4 px-5">
-      <span className="text-xl font-bold tracking-tight text-base-content">TweetSip</span>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={scanning}
-          className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
-          aria-label="Refresh"
+    <div
+      style={{
+        borderBottom: `1px solid ${T.divider}`,
+        padding: "12px 0",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 580,
+          margin: "0 auto",
+          padding: "0 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            fontFamily: "'Playfair Display', serif",
+            letterSpacing: "-0.02em",
+            color: T.text,
+          }}
         >
-          <RefreshCw size={15} className={scanning || isFetching ? "animate-spin" : ""} />
-        </button>
-        <button
-          type="button"
-          onClick={cycle}
-          className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
-          aria-label="Toggle theme"
-        >
-          {THEME_ICON[pref]}
-        </button>
-        <Link
-          to="/settings"
-          className="btn btn-ghost btn-square btn-sm text-base-content/40 hover:text-base-content"
-          aria-label="Settings"
-        >
-          <Settings size={15} />
-        </Link>
+          TweetSip
+        </span>
+        <div style={{ display: "flex", gap: 5 }}>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={scanning}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              border: `1px solid ${T.divider}`,
+              background: "transparent",
+              color: T.muted,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-label="Refresh"
+          >
+            <RefreshCw size={13} className={scanning || isFetching ? "animate-spin" : ""} />
+          </button>
+          <button
+            type="button"
+            onClick={cycle}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              border: `1px solid ${T.divider}`,
+              background: "transparent",
+              color: T.muted,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-label="Toggle theme"
+          >
+            {THEME_ICON[pref]}
+          </button>
+          <Link
+            to="/settings"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              border: `1px solid ${T.divider}`,
+              background: "transparent",
+              color: T.muted,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-label="Settings"
+          >
+            <Settings size={13} />
+          </Link>
+        </div>
       </div>
     </div>
   )
 }
 
-// ---- Tab bar ----
+// ── Tab bar ───────────────────────────────────────────────────────────────────
 
 function TabBar({
   accounts,
@@ -230,37 +293,86 @@ function TabBar({
 }) {
   const insightsAccount =
     view.type === "insights" ? accounts.find((a) => a.id === view.accountId) : null
+  const sipActive = view.type === "sip"
 
   return (
-    <div className="flex items-end px-5 border-b border-base-content/[0.08]">
-      {/* The Sip tab */}
-      <button
-        type="button"
-        onClick={onSip}
-        className={`flex items-center gap-2 pb-3 mr-6 text-sm font-semibold transition-colors ${
-          view.type === "sip"
-            ? "text-base-content border-b-2 border-base-content -mb-px"
-            : "text-base-content/30"
-        }`}
+    <div style={{ borderBottom: `1px solid ${T.divider}` }}>
+      <div
+        style={{
+          maxWidth: 580,
+          margin: "0 auto",
+          padding: "0 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
       >
-        ☕ The Sip
-        <span className="bg-base-content text-base-100 text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">
-          {accounts.length}
-        </span>
-      </button>
+        {/* The Sip tab */}
+        <button
+          type="button"
+          onClick={onSip}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            padding: "11px 0",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            borderBottom: sipActive ? `2px solid ${T.text}` : "2px solid transparent",
+            marginBottom: -1,
+            transition: "border-color 0.15s",
+          }}
+        >
+          <span style={{ fontSize: 13 }}>☕</span>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: sipActive ? 600 : 400,
+              color: sipActive ? T.text : T.muted,
+            }}
+          >
+            The Sip
+          </span>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              background: sipActive ? T.text : T.divider,
+              color: sipActive ? "var(--color-base-100)" : T.muted,
+              padding: "1px 6px",
+              borderRadius: 99,
+              transition: "all 0.15s",
+            }}
+          >
+            {accounts.length}
+          </span>
+        </button>
 
-      {/* Account tab — only when in insights view */}
-      {insightsAccount && (
-        <div className="flex items-center gap-2 pb-3 text-sm font-semibold text-base-content border-b-2 border-base-content -mb-px">
-          <AccountAvatar account={insightsAccount} size={20} />
-          <span>@{insightsAccount.handle}</span>
-        </div>
-      )}
+        {/* Account tab — only in insights view, pushed to far right */}
+        {insightsAccount && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "11px 0",
+              borderBottom: `2px solid ${T.text}`,
+              marginBottom: -1,
+            }}
+          >
+            <AvatarCircle account={insightsAccount} size={18} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.text, whiteSpace: "nowrap" }}>
+              {handle(insightsAccount.handle)}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-// ---- Sip View ----
+// ── Avatar strip ──────────────────────────────────────────────────────────────
 
 function AvatarStrip({
   accounts,
@@ -272,59 +384,136 @@ function AvatarStrip({
   onFilter: (id: string | null) => void
 }) {
   return (
-    <div className="flex items-start gap-3 p-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-      {/* All button */}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        padding: "12px 20px",
+        borderBottom: `1px solid ${T.divider}`,
+      }}
+    >
+      {/* All — wide, slight rounded corners */}
       <button
         type="button"
         onClick={() => onFilter(null)}
-        className={`flex flex-col items-center gap-1 shrink-0 transition-colors`}
+        style={{
+          padding: "6px 20px",
+          borderRadius: 8,
+          flexShrink: 0,
+          border: "none",
+          cursor: "pointer",
+          transition: "all 0.15s",
+          background: filterId === null ? T.text : T.bg,
+          color: filterId === null ? "var(--color-base-100)" : T.muted,
+          fontSize: 12,
+          fontWeight: 600,
+        }}
       >
-        <div
-          className={`px-4 h-11 rounded-lg text-sm font-semibold flex items-center transition-colors ${
-            filterId === null
-              ? "bg-base-content text-base-100"
-              : "bg-base-300/60 text-base-content/40"
-          }`}
-        >
-          All
-        </div>
+        All
       </button>
 
-      {/* Account avatars */}
-      {accounts.map((a) => {
-        const active = filterId === a.id
-        return (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => onFilter(a.id)}
-            className="flex flex-col items-center gap-1.5 shrink-0"
-          >
-            <div className={active ? "" : "opacity-30"}>
-              <AccountAvatar account={a} size={44} selected={active} />
-            </div>
-            <span
-              className={`text-[10px] font-medium max-w-[52px] truncate ${active ? "text-base-content" : "text-base-content/40"}`}
-            >
-              {a.handle}
-            </span>
-          </button>
-        )
-      })}
+      {/* Spacer pushes avatars to the right */}
+      <div style={{ flex: 1 }} />
 
-      {/* Add account */}
-      <Link
-        to="/settings"
-        className="flex flex-col items-center gap-1.5 shrink-0"
-        aria-label="Add account"
+      {/* Account avatars — far right */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 6,
+          overflowX: "auto",
+          scrollbarWidth: "none",
+        }}
       >
-        <div className="w-11 h-11 rounded-full border-2 border-dashed border-base-content/15 flex items-center justify-center text-base-content/25 text-lg leading-none">
+        {accounts.map((a) => {
+          const active = filterId === a.id
+          return (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => onFilter(active ? null : a.id)}
+              title={handle(a.handle)}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0 3px",
+                flexShrink: 0,
+                opacity: filterId !== null && !active ? 0.3 : 1,
+                transition: "opacity 0.15s",
+              }}
+            >
+              <div
+                style={{
+                  outline: active ? `2.5px solid ${T.text}` : "2.5px solid transparent",
+                  outlineOffset: 2,
+                  borderRadius: "50%",
+                  transition: "outline 0.15s",
+                  lineHeight: 0,
+                }}
+              >
+                <AvatarCircle account={a} size={32} />
+              </div>
+              <span
+                style={{
+                  fontSize: 9,
+                  color: active ? T.text : T.muted,
+                  fontWeight: active ? 600 : 400,
+                  maxWidth: 44,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {a.handle.replace("@", "")}
+              </span>
+            </button>
+          )
+        })}
+
+        {/* Separator */}
+        <div
+          style={{
+            width: 1,
+            height: 20,
+            background: T.divider,
+            flexShrink: 0,
+            marginLeft: 4,
+            alignSelf: "center",
+          }}
+        />
+
+        {/* Add account */}
+        <Link
+          to="/settings"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            flexShrink: 0,
+            border: `1.5px dashed ${T.divider}`,
+            background: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: T.muted,
+            fontSize: 15,
+            alignSelf: "flex-start",
+          }}
+          aria-label="Add account"
+        >
           +
-        </div>
-      </Link>
+        </Link>
+      </div>
     </div>
   )
 }
+
+// ── Sip view ──────────────────────────────────────────────────────────────────
 
 function SipView({
   accounts,
@@ -341,65 +530,137 @@ function SipView({
   const thread = todaysThread(accounts)
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* Date + greeting */}
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35 mb-2">
+      <div style={{ marginBottom: 20 }}>
+        <div
+          style={{
+            fontSize: 10,
+            color: T.muted,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            fontWeight: 500,
+            marginBottom: 3,
+          }}
+        >
           {dateLabel()} · Daily Sip
-        </p>
-        <h2 className="text-3xl font-bold tracking-tight text-base-content">{greeting()} ☕</h2>
+        </div>
+        <div
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 26,
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            color: T.text,
+          }}
+        >
+          {greeting()} ☕
+        </div>
       </div>
 
       {/* Today's Thread */}
       {thread && (
-        <div className="bg-white rounded-2xl p-5" style={{ borderLeft: "4px solid #3b82f6" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-500 mb-2">
-            Today's Thread
-          </p>
-          <p className="text-sm text-base-content/65 leading-relaxed">{thread}</p>
+        <div
+          style={{
+            background: T.surface,
+            borderRadius: 14,
+            padding: "14px 18px",
+            marginBottom: 12,
+            borderLeft: `3px solid ${T.blue}`,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              color: T.blue,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              fontWeight: 600,
+              marginBottom: 5,
+            }}
+          >
+            Today's thread
+          </div>
+          <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.6, margin: 0 }}>{thread}</p>
         </div>
       )}
 
-      {/* Feed panel — single white card */}
+      {/* Single feed panel */}
       {accounts.length > 0 ? (
-        <div className="bg-white rounded-2xl overflow-hidden">
+        <div style={{ background: T.surface, borderRadius: 16, overflow: "hidden" }}>
           <AvatarStrip accounts={accounts} filterId={filterId} onFilter={onFilter} />
-          <div className="border-t border-base-content/[0.06]" />
           {visible.map((a, i) => (
-            <div key={a.id}>
-              {i > 0 && <div className="border-t border-base-content/[0.06] mx-5" />}
-              <div className="px-5 py-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-bold text-base-content">@{a.handle}</span>
-                  {a.briefing && (
-                    <span className="bg-base-200 text-base-content/45 text-[11px] font-medium px-2.5 py-0.5 rounded-full">
-                      AI Summary
-                    </span>
-                  )}
-                </div>
-                {a.briefing?.moment ? (
-                  <p className="text-sm text-base-content/65 leading-relaxed mb-3">
-                    {a.briefing.moment}
-                  </p>
-                ) : (
-                  <p className="text-sm text-base-content/30 italic mb-3">Briefing pending…</p>
-                )}
+            <div
+              key={a.id}
+              style={{
+                borderBottom: i === visible.length - 1 ? "none" : `1px solid ${T.divider}`,
+                padding: "20px 20px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>
+                  {handle(a.handle)}
+                </span>
                 {a.briefing && (
-                  <button
-                    type="button"
-                    onClick={() => onReadThread(a.id)}
-                    className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors"
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: T.muted,
+                      background: T.bg,
+                      padding: "2px 8px",
+                      borderRadius: 99,
+                    }}
                   >
-                    Read thread →
-                  </button>
+                    AI Summary
+                  </span>
                 )}
               </div>
+              {a.briefing?.moment ? (
+                <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.65, margin: "0 0 12px" }}>
+                  {a.briefing.moment}
+                </p>
+              ) : (
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: T.muted,
+                    fontStyle: "italic",
+                    margin: "0 0 12px",
+                  }}
+                >
+                  Briefing pending…
+                </p>
+              )}
+              {a.briefing && (
+                <button
+                  type="button"
+                  onClick={() => onReadThread(a.id)}
+                  style={{
+                    fontSize: 12,
+                    color: T.blue,
+                    fontWeight: 600,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  Read thread →
+                </button>
+              )}
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-10 text-center">
-          <p className="text-sm text-base-content/40 mb-4">No accounts tracked yet.</p>
+        <div
+          style={{
+            background: T.surface,
+            borderRadius: 16,
+            padding: "48px 24px",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontSize: 13, color: T.muted, marginBottom: 16 }}>No accounts tracked yet.</p>
           <Link to="/settings" className="btn btn-neutral btn-sm">
             Add your first account
           </Link>
@@ -407,7 +668,15 @@ function SipView({
       )}
 
       {accounts.length > 0 && (
-        <p className="text-center text-[11px] text-base-content/25 italic pt-2 pb-4">
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 11,
+            color: T.muted,
+            marginTop: 28,
+            fontStyle: "italic",
+          }}
+        >
           "Curated by TweetSip AI. Stay informed, stay focused."
         </p>
       )}
@@ -415,7 +684,58 @@ function SipView({
   )
 }
 
-// ---- Insights View ----
+// ── Post row ──────────────────────────────────────────────────────────────────
+
+function PostRow({ post, isLast }: { post: FeedAccount["posts"][number]; isLast: boolean }) {
+  const [hov, setHov] = useState(false)
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover-only visual feedback row
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "11px 20px",
+        gap: 16,
+        borderBottom: isLast ? "none" : `1px solid ${T.divider}`,
+        background: hov
+          ? "color-mix(in srgb, var(--color-base-content) 3%, transparent)"
+          : "transparent",
+        transition: "background 0.1s",
+      }}
+    >
+      <p
+        style={{
+          fontSize: 13,
+          color: T.sub,
+          margin: 0,
+          lineHeight: 1.5,
+          flex: 1,
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+        }}
+      >
+        {post.text}
+      </p>
+      <span
+        style={{
+          fontSize: 12,
+          fontFamily: "'DM Mono', monospace",
+          color: T.muted,
+          flexShrink: 0,
+        }}
+      >
+        {fmtNum(post.likes)}
+      </span>
+    </div>
+  )
+}
+
+// ── Insights view ─────────────────────────────────────────────────────────────
 
 function InsightsView({
   account,
@@ -430,51 +750,99 @@ function InsightsView({
   const highlights = (briefing?.highlights ?? []) as Highlight[]
   const moods =
     briefing?.mood
-      ?.split(/[+,]/)
+      ?.split(/[+·,]/)
       .map((s) => s.trim())
       .filter(Boolean) ?? []
 
-  const toneStyle: Record<Highlight["tone"], { bg: string; text: string }> = {
-    positive: { bg: "rgba(22,163,74,0.08)", text: "#15803d" },
-    notable: { bg: "rgba(59,130,246,0.08)", text: "#1d4ed8" },
-    warning: { bg: "rgba(220,38,38,0.08)", text: "#dc2626" },
+  const toneStyle: Record<Highlight["tone"], { bg: string; border: string; color: string }> = {
+    positive: { bg: T.greenBg, border: `1px solid ${T.greenBorder}`, color: T.greenText },
+    notable: { bg: T.blueBg, border: `1px solid ${T.blueBorder}`, color: T.blueText },
+    warning: { bg: T.redBg, border: `1px solid ${T.redBorder}`, color: T.redText },
   }
 
   return (
-    <div className="space-y-4">
-      {/* Account header — outside any card */}
-      <div className="flex items-center gap-4">
-        <AccountAvatar account={account} size={48} />
+    <div>
+      {/* Account header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <AvatarCircle account={account} size={36} />
         <div>
-          <p className="text-base font-bold text-base-content">{account.name ?? account.handle}</p>
-          <p className="text-sm text-base-content/45">
-            @{account.handle}
+          <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>
+            {account.name ?? account.handle}
+          </div>
+          <div style={{ fontSize: 11, color: T.muted }}>
+            {handle(account.handle)}
             {posts.length > 0 && ` · ${posts.length} posts today`}
-          </p>
+          </div>
         </div>
       </div>
 
       {/* Summary card */}
       {briefing && (
-        <div className="bg-white rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-2 h-2 rounded-full bg-emerald-500 ${scanning ? "animate-pulse" : ""}`}
+        <div
+          style={{
+            background: T.surface,
+            borderRadius: 16,
+            marginBottom: 10,
+            padding: "22px 24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 14,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: scanning ? "#9ca3af" : "#22c55e",
+                  transition: "background 0.3s",
+                }}
               />
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35">
+              <span
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: T.muted,
+                  fontWeight: 600,
+                }}
+              >
                 Summary
               </span>
             </div>
             {moods.length > 0 && (
-              <span className="bg-base-200 text-base-content/45 text-[11px] font-medium px-3 py-1 rounded-full uppercase tracking-wide">
+              <span
+                style={{
+                  fontSize: 10,
+                  color: T.sub,
+                  background: T.bg,
+                  padding: "3px 10px",
+                  borderRadius: 99,
+                  fontWeight: 500,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                }}
+              >
                 {moods.join(" · ")}
               </span>
             )}
           </div>
           <p
-            className="text-xl font-bold leading-snug text-base-content"
-            style={{ fontFamily: "var(--font-serif)" }}
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 19,
+              lineHeight: 1.45,
+              fontWeight: 700,
+              color: T.text,
+              margin: 0,
+              letterSpacing: "-0.01em",
+            }}
           >
             {briefing.moment}
           </p>
@@ -482,76 +850,154 @@ function InsightsView({
       )}
 
       {/* What Stood Out */}
-      {highlights.length > 0 && (
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35 mb-3 px-0.5">
-            What Stood Out
-          </p>
-          <div className="space-y-2">
-            {highlights.map((h, i) => (
-              <div
-                key={`${h.tone}-${i}`}
-                className="rounded-2xl p-4 flex items-start gap-3"
-                style={{ background: toneStyle[h.tone].bg }}
-              >
-                <span className="text-lg leading-none shrink-0 mt-0.5">{h.emoji}</span>
-                <p className="text-sm leading-relaxed" style={{ color: toneStyle[h.tone].text }}>
-                  {h.text}
-                </p>
-              </div>
-            ))}
-          </div>
+      <div
+        style={{
+          background: T.surface,
+          borderRadius: 16,
+          marginBottom: 10,
+          padding: "20px 20px 12px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            color: T.muted,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            fontWeight: 600,
+            marginBottom: 13,
+          }}
+        >
+          What stood out
         </div>
-      )}
+        {highlights.length > 0 ? (
+          highlights.map((h, i) => (
+            <div
+              key={`${h.tone}-${i}`}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "10px 13px",
+                borderRadius: 11,
+                background: toneStyle[h.tone].bg,
+                border: toneStyle[h.tone].border,
+                marginBottom: 7,
+              }}
+            >
+              <span style={{ fontSize: 13, lineHeight: 1, marginTop: 2, flexShrink: 0 }}>
+                {h.emoji}
+              </span>
+              <span style={{ fontSize: 13, color: toneStyle[h.tone].color, lineHeight: 1.55 }}>
+                {h.text}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p style={{ fontSize: 12, color: T.muted, fontStyle: "italic", margin: 0 }}>
+            Highlights will appear after the next briefing is generated.
+          </p>
+        )}
+      </div>
 
       {/* Top Posts Today */}
       {posts.length > 0 && (
-        <div className="bg-white rounded-2xl overflow-hidden">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-base-content/35 px-5 pt-5 pb-4">
-            Top Posts Today
-          </p>
-          {posts.slice(0, 5).map((post, i) => (
-            <div
-              key={post.id}
-              className={`flex items-start gap-4 px-5 py-4 ${i > 0 ? "border-t border-base-content/[0.06]" : ""}`}
+        <div
+          style={{
+            background: T.surface,
+            borderRadius: 16,
+            overflow: "hidden",
+            marginBottom: 10,
+          }}
+        >
+          <div
+            style={{
+              padding: "13px 20px 11px",
+              borderBottom: `1px solid ${T.divider}`,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: T.muted,
+                fontWeight: 600,
+              }}
             >
-              <p className="text-sm text-base-content/65 leading-relaxed flex-1 min-w-0">
-                {post.text.length > 150 ? `${post.text.slice(0, 150)}…` : post.text}
-              </p>
-              <span
-                className="text-sm text-base-content/35 shrink-0 tabular-nums"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {fmtNum(post.likes)}
-              </span>
-            </div>
+              Top posts today
+            </span>
+          </div>
+          {posts.slice(0, 5).map((post, i) => (
+            <PostRow key={post.id} post={post} isLast={i === Math.min(posts.length, 5) - 1} />
           ))}
         </div>
       )}
 
       {/* Your Move */}
       {briefing?.forYou && (
-        <div className="rounded-2xl p-5" style={{ background: "rgba(251,191,36,0.12)" }}>
-          <div className="flex items-center gap-3 mb-3">
+        <div
+          style={{
+            borderRadius: 16,
+            border: `1px solid ${T.amberBorder}`,
+            background: T.amberBg,
+            padding: "18px 20px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 13,
+            marginBottom: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: T.amberIcon,
+              border: `1px solid ${T.amberBorder}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 15,
+              flexShrink: 0,
+              marginTop: 1,
+            }}
+          >
+            ⚡
+          </div>
+          <div>
             <div
-              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "rgba(251,191,36,0.25)" }}
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: T.amberLabel,
+                fontWeight: 600,
+                marginBottom: 5,
+              }}
             >
-              <span className="text-base leading-none">⚡</span>
+              Your move
             </div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600">
-              Your Move
+            <p style={{ fontSize: 13, color: T.amberBody, lineHeight: 1.6, margin: 0 }}>
+              {briefing.forYou}
             </p>
           </div>
-          <p className="text-sm leading-relaxed text-amber-900/80">{briefing.forYou}</p>
         </div>
       )}
 
-      {/* Back link at bottom */}
+      {/* Back */}
       <button
         type="button"
         onClick={onBack}
-        className="text-xs text-base-content/35 hover:text-base-content/55 transition-colors pb-4"
+        style={{
+          fontSize: 12,
+          color: T.muted,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: "8px 0 24px",
+          display: "block",
+        }}
       >
         ← Back to The Sip
       </button>
@@ -559,7 +1005,7 @@ function InsightsView({
   )
 }
 
-// ---- Page ----
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 type ScanStatus = "idle" | "scanning" | "done_new" | "done_same"
 
@@ -618,24 +1064,28 @@ function FeedPage() {
     view.type === "insights" ? (accounts.find((a) => a.id === view.accountId) ?? null) : null
 
   return (
-    <div className="min-h-screen bg-base-200">
-      {/* Sticky header: top bar + tab bar */}
+    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif" }}>
+      {/* Sticky nav shell */}
       <div
-        className="sticky top-0 z-50"
-        style={{ background: "rgba(242,244,248,0.92)", backdropFilter: "blur(12px)" }}
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          background: T.nav,
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+        }}
       >
-        <div className="max-w-2xl mx-auto">
-          <TopBar scanning={scanning} isFetching={isFetching} onRefresh={handleRefresh} />
-          <TabBar
-            accounts={accounts}
-            view={view}
-            onSip={() => setView({ type: "sip", filterId: null })}
-          />
-        </div>
+        <TopBar scanning={scanning} isFetching={isFetching} onRefresh={handleRefresh} />
+        <TabBar
+          accounts={accounts}
+          view={view}
+          onSip={() => setView({ type: "sip", filterId: null })}
+        />
       </div>
 
-      {/* Page content */}
-      <div className="max-w-2xl mx-auto px-5 pt-6 pb-16">
+      {/* Content */}
+      <div style={{ maxWidth: 580, margin: "0 auto", padding: "24px 18px 0" }}>
         {view.type === "sip" ? (
           <SipView
             accounts={accounts}
@@ -650,11 +1100,17 @@ function FeedPage() {
             onBack={() => setView({ type: "sip", filterId: null })}
           />
         ) : (
-          <div className="text-center py-16">
+          <div style={{ textAlign: "center", padding: "64px 0" }}>
             <button
               type="button"
               onClick={() => setView({ type: "sip", filterId: null })}
-              className="text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
+              style={{
+                fontSize: 13,
+                color: T.muted,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
               ← Back to feed
             </button>
