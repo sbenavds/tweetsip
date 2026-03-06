@@ -144,6 +144,9 @@ export const briefings = sqliteTable("briefings", {
   topPostSummary: text("top_post_summary"),
   forYou: text("for_you"),
   engagementScore: integer("engagement_score").default(0),
+  mood: text("mood"),
+  sentiment: text("sentiment"), // JSON: {"positive":n,"neutral":n,"negative":n}
+  themes: text("themes"), // JSON: string[]
   generatedAt: integer("generated_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

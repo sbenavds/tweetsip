@@ -7,10 +7,17 @@ import { briefings, posts, trackedAccounts } from "@/db/schema"
 type Db = DrizzleD1Database<typeof schema>
 
 const briefingSchema = z.object({
-  moment: z.string().max(120),
-  topPostSummary: z.string().max(150),
-  forYou: z.string().max(150),
+  moment: z.string().max(280),
+  topPostSummary: z.string().max(200),
+  forYou: z.string().max(200),
   engagementScore: z.number().min(0).max(100),
+  mood: z.string().max(60),
+  sentiment: z.object({
+    positive: z.number().min(0).max(100),
+    neutral: z.number().min(0).max(100),
+    negative: z.number().min(0).max(100),
+  }),
+  themes: z.array(z.string().max(30)).min(2).max(5),
 })
 
 type BriefingContent = z.infer<typeof briefingSchema>
@@ -19,16 +26,20 @@ const SYSTEM_PROMPT = `You are an intelligence analyst briefing a professional w
 
 Analyze the posts and return a JSON object with exactly these fields:
 
-- moment: What specific narrative or push is this account running RIGHT NOW? Name the angle and intent concretely — not their general topic, but what they are actively doing this week. Max 120 chars.
-- topPostSummary: Why did the top post actually perform? Identify the hook, mechanic, or angle that drove engagement — not what the post said, but why it landed. Max 150 chars.
-- forYou: One sharp, actionable signal. What should the person tracking this account know or do right now — a window to act, a trend to watch, a risk to note? Make it specific. Max 150 chars.
-- engagementScore: 0–100. Use 50 as the baseline for normal engagement on this account. Score 80+ only for genuinely viral or exceptional posts. Under 30 for low traction or silence.
+- moment: A 2–3 sentence narrative of what this account is actively doing RIGHT NOW. Name the specific angle, campaign, or push. What story are they telling? What pattern emerges across these posts? Max 280 chars.
+- topPostSummary: Why did the top-performing post actually land? Identify the specific hook, mechanic, or emotional trigger — not what it said, but why it worked. Max 200 chars.
+- forYou: One sharp, actionable signal. A window to act, a trend emerging, a risk to note, or a timing insight. Be specific — not "engage with their content" but something a strategist can actually use. Max 200 chars.
+- engagementScore: 0–100. Baseline 50 = normal. 75+ = notably high. 90+ = exceptional/viral. Under 30 = low traction or silence.
+- mood: 2–4 words capturing the emotional register of recent posts (e.g., "Triumphant + Promotional", "Defensive + Aggressive", "Quiet + Strategic"). Max 60 chars.
+- sentiment: Object with "positive", "neutral", "negative" as integers that sum to exactly 100. Based on tone and intent of the posts.
+- themes: Array of 3–5 short topic tags (max 30 chars each) representing the dominant subjects in these posts.
 
 Strict rules:
-- Do NOT restate tweet text or paraphrase what the post said
-- Do NOT write generic descriptions like "sharing content", "promoting their product", or "engaging with followers"
-- Do NOT give obvious advice like "consider engaging with their posts"
-- Every sentence must contain a specific, non-obvious observation`
+- Do NOT restate tweet text verbatim or paraphrase individual posts
+- Do NOT write generic descriptions ("sharing content", "promoting product", "engaging followers")
+- Do NOT give obvious advice ("consider monitoring", "check their profile")
+- mood must be specific to THIS account's current emotional register, not a generic label
+- themes should be specific topics, not generic categories like "Politics" or "Business"`
 
 export async function generateBriefing(
   db: Db,
@@ -45,13 +56,13 @@ export async function generateBriefing(
   const recentPosts = await db.query.posts.findMany({
     where: eq(posts.accountId, accountId),
     orderBy: (p, { desc }) => desc(p.postedAt),
-    limit: 5,
+    limit: 10,
   })
 
   if (recentPosts.length === 0) throw new Error("No posts to analyze")
 
   const postsText = recentPosts
-    .map((p) => `- ${p.text} (likes: ${p.likes}, reposts: ${p.reposts})`)
+    .map((p, i) => `${i + 1}. "${p.text}" (likes: ${p.likes}, reposts: ${p.reposts})`)
     .join("\n")
 
   const result = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
@@ -59,7 +70,7 @@ export async function generateBriefing(
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Analyze these recent posts from ${account.handle}:\n\n${postsText}`,
+        content: `Analyze these ${recentPosts.length} recent posts from ${account.handle}:\n\n${postsText}\n\nReturn only valid JSON.`,
       },
     ],
     response_format: { type: "json_object" },
@@ -85,5 +96,8 @@ export async function generateBriefing(
     topPostSummary: content.topPostSummary,
     forYou: content.forYou,
     engagementScore: content.engagementScore,
+    mood: content.mood,
+    sentiment: JSON.stringify(content.sentiment),
+    themes: JSON.stringify(content.themes),
   })
 }

@@ -5,6 +5,8 @@ import { trackedAccounts } from "@/db/schema"
 
 type Db = DrizzleD1Database<typeof schema>
 
+type Sentiment = { positive: number; neutral: number; negative: number }
+
 export async function getFeedAccounts(db: Db, userId: string) {
   const accounts = await db.query.trackedAccounts.findMany({
     where: eq(trackedAccounts.userId, userId),
@@ -15,28 +17,40 @@ export async function getFeedAccounts(db: Db, userId: string) {
       },
       posts: {
         orderBy: (p, { desc }) => [desc(p.postedAt)],
-        limit: 5,
-        columns: { id: true, text: true, likes: true },
+        limit: 10,
+        columns: { id: true, text: true, likes: true, reposts: true, postedAt: true },
       },
     },
   })
 
-  return accounts.map((a) => ({
-    id: a.id,
-    handle: a.handle,
-    name: a.name,
-    avatarUrl: a.avatarUrl,
-    briefing: a.briefings[0]
-      ? {
-          moment: a.briefings[0].moment,
-          topPostSummary: a.briefings[0].topPostSummary,
-          forYou: a.briefings[0].forYou,
-          engagementScore: a.briefings[0].engagementScore ?? 0,
-          generatedAt: a.briefings[0].generatedAt.toISOString(),
-        }
-      : null,
-    posts: a.posts.map((p) => ({ id: p.id, text: p.text, likes: p.likes ?? 0 })),
-  }))
+  return accounts.map((a) => {
+    const b = a.briefings[0]
+    return {
+      id: a.id,
+      handle: a.handle,
+      name: a.name,
+      avatarUrl: a.avatarUrl,
+      briefing: b
+        ? {
+            moment: b.moment,
+            topPostSummary: b.topPostSummary,
+            forYou: b.forYou,
+            engagementScore: b.engagementScore ?? 0,
+            generatedAt: b.generatedAt.toISOString(),
+            mood: b.mood ?? null,
+            sentiment: b.sentiment ? (JSON.parse(b.sentiment) as Sentiment) : null,
+            themes: b.themes ? (JSON.parse(b.themes) as string[]) : null,
+          }
+        : null,
+      posts: a.posts.map((p) => ({
+        id: p.id,
+        text: p.text,
+        likes: p.likes ?? 0,
+        reposts: p.reposts ?? 0,
+        postedAt: p.postedAt?.toISOString() ?? null,
+      })),
+    }
+  })
 }
 
 export type FeedAccount = Awaited<ReturnType<typeof getFeedAccounts>>[number]
