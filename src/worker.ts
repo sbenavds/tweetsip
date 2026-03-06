@@ -99,10 +99,8 @@ export default {
             })
           }
 
-          await enqueue.generateBriefing(env.QUEUE, {
-            accountId: payload.accountId,
-            userId: account.userId,
-          })
+          // Run briefing inline — avoids a second queue hop (~5s saved)
+          await generateBriefing(db, env, payload.accountId, account.userId)
         } else if (type === "GENERATE_BRIEFING") {
           await generateBriefing(db, env, payload.accountId, payload.userId)
         } else if (type === "SEND_NOTIFICATION") {

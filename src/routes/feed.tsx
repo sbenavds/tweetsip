@@ -73,9 +73,12 @@ function todaysThread(accounts: FeedAccount[]): string | null {
   const briefed = accounts.filter((a) => a.briefing)
   if (briefed.length === 0) return null
   const themes = [...new Set(briefed.flatMap((a) => a.briefing?.themes ?? []))].slice(0, 4)
+  const n = briefed.length
+  const total = accounts.length
+  const coverage =
+    n < total ? `${n} of ${total} accounts` : `${n} ${n === 1 ? "account" : "accounts"}`
   if (themes.length >= 2) {
-    const n = briefed.length
-    return `${n} ${n === 1 ? "account" : "accounts"} covered today. Topics span: ${themes.join(", ")}.`
+    return `${coverage} covered today. Topics span: ${themes.join(", ")}.`
   }
   return briefed[0].briefing?.moment ?? null
 }
@@ -308,16 +311,19 @@ function AvatarStrip({
 function SipView({
   accounts,
   filterId,
+  scanning,
   onFilter,
   onReadThread,
 }: {
   accounts: FeedAccount[]
   filterId: string | null
+  scanning: boolean
   onFilter: (id: string | null) => void
   onReadThread: (id: string) => void
 }) {
   const visible = filterId ? accounts.filter((a) => a.id === filterId) : accounts
   const thread = todaysThread(accounts)
+  const pendingCount = accounts.filter((a) => !a.briefing).length
 
   return (
     <div>
@@ -330,6 +336,18 @@ function SipView({
           {greeting()} ☕
         </h2>
       </div>
+
+      {/* Sync status — shown while briefings are pending */}
+      {(scanning || pendingCount > 0) && (
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <p className="text-[11px] text-base-content/40">
+            {scanning
+              ? "Fetching posts and generating briefings… this takes ~30s"
+              : `${pendingCount} ${pendingCount === 1 ? "briefing" : "briefings"} generating…`}
+          </p>
+        </div>
+      )}
 
       {/* Today's Thread */}
       {thread && (
@@ -550,58 +568,42 @@ function InsightsView({
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-type ScanStatus = "idle" | "scanning" | "done_new" | "done_same"
-
 function FeedPage() {
   const loaderData = Route.useLoaderData()
   const queryClient = useQueryClient()
-  const [, startTransition] = useTransition()
-  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle")
-  const [refreshedAt, setRefreshedAt] = useState<number | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const [scanning, setScanning] = useState(false)
   const [view, setView] = useState<ViewState>({ type: "sip", filterId: null })
 
   const { data: accounts = [], isFetching } = useQuery({
     ...feedQueryOptions(),
     initialData: loaderData,
     refetchInterval: (query) => {
+      if (scanning) return 3000
       const data = query.state.data ?? []
-      if (data.some((a) => !a.briefing)) return 3000
-      if (scanStatus === "scanning") return 3000
-      return false
+      return data.some((a) => !a.briefing) ? 3000 : false
     },
   })
 
+  // Stop scanning once all briefings are ready or after 60s timeout
   useEffect(() => {
-    if (scanStatus !== "scanning" || isFetching || !refreshedAt) return
-    const hasNew = accounts.some(
-      (a) => a.briefing?.generatedAt && new Date(a.briefing.generatedAt).getTime() > refreshedAt
-    )
-    if (!hasNew) return
-    setScanStatus("done_new")
-    setRefreshedAt(null)
-  }, [accounts, isFetching, scanStatus, refreshedAt])
-
-  useEffect(() => {
-    if (scanStatus === "idle") return
-    const ms = scanStatus === "scanning" ? 45000 : 3000
-    const t = setTimeout(() => {
-      setScanStatus("idle")
-      setRefreshedAt(null)
-    }, ms)
+    if (!scanning) return
+    if (accounts.length > 0 && accounts.every((a) => a.briefing)) {
+      setScanning(false)
+      return
+    }
+    const t = setTimeout(() => setScanning(false), 60_000)
     return () => clearTimeout(t)
-  }, [scanStatus])
+  }, [scanning, accounts])
 
   function handleRefresh() {
-    const now = Date.now()
-    setRefreshedAt(now)
-    setScanStatus("scanning")
+    setScanning(true)
     startTransition(async () => {
       await triggerFetch()
       queryClient.invalidateQueries({ queryKey: ["feed"] })
     })
   }
 
-  const scanning = scanStatus === "scanning"
   const insightsAccount =
     view.type === "insights" ? (accounts.find((a) => a.id === view.accountId) ?? null) : null
 
@@ -609,7 +611,11 @@ function FeedPage() {
     <div className="min-h-screen bg-base-200 font-sans">
       {/* Sticky nav — top bar + tab bar share one backdrop */}
       <div className="sticky top-0 z-50 bg-base-200/95 backdrop-blur-xl">
-        <TopBar scanning={scanning} isFetching={isFetching} onRefresh={handleRefresh} />
+        <TopBar
+          scanning={isPending || scanning}
+          isFetching={isFetching}
+          onRefresh={handleRefresh}
+        />
         <TabBar
           accounts={accounts}
           view={view}
@@ -622,6 +628,7 @@ function FeedPage() {
           <SipView
             accounts={accounts}
             filterId={view.filterId}
+            scanning={scanning}
             onFilter={(id) => setView({ type: "sip", filterId: id })}
             onReadThread={(id) => setView({ type: "insights", accountId: id })}
           />

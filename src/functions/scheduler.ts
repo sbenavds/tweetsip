@@ -12,5 +12,5 @@ export const triggerFetch = createServerFn({ method: "POST" })
     const env = (context as unknown as { cloudflare: { env: Env } }).cloudflare.env
     const db = getDb(env.DB)
 
-    return enqueueAllAccountFetches(db, env.QUEUE)
+    return enqueueAllAccountFetches(db, env.QUEUE, user.id)
   })
