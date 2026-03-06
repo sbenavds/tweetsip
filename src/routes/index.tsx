@@ -25,6 +25,13 @@ function LandingPage() {
           </Link>
         </div>
 
+        {/* Hero image */}
+        <img
+          src="/hero.png"
+          alt="Accounts flow into AI, AI generates a summarized digest"
+          className="w-full rounded-2xl"
+        />
+
         {/* Features */}
         <div className="space-y-4">
           {[
