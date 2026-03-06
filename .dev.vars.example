@@ -1,0 +1,6 @@
+# Copy to .dev.vars and fill in your values (never commit .dev.vars)
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:3000
+X_BEARER_TOKEN=
+CLOUDFLARE_ACCOUNT_ID=
+RESEND_API_KEY=

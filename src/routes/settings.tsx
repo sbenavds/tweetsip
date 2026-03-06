@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
 import { useActionState, useState, useTransition } from "react";
 import { ArrowLeft, X, Plus, Loader2 } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
@@ -112,6 +112,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
 }
 
 function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
+  const router = useRouter();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, startDelete] = useTransition();
 
@@ -122,6 +123,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
       if (accounts.length >= 5) return "Maximum 5 accounts";
       try {
         await addAccount({ data: { handle: raw } });
+        router.invalidate();
       } catch (e) {
         return e instanceof Error ? e.message : "Failed to add account";
       }
@@ -134,6 +136,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
     startDelete(async () => {
       try {
         await deleteTrackedAccount({ data: { accountId } });
+        router.invalidate();
       } catch {
         setDeleteError("Failed to remove account");
       }

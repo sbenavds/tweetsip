@@ -2,6 +2,7 @@ import server from "@tanstack/react-start/server-entry";
 import { avg, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { posts, trackedAccounts } from "@/db/schema";
+import { createAuth } from "@/lib/auth";
 import { AccountMonitor } from "@/lib/account-monitor";
 import { enqueue, queueMessageSchema } from "@/lib/queue";
 import { generateBriefing } from "@/server/briefting";
@@ -12,7 +13,16 @@ import { enqueueAllAccountFetches } from "@/server/scheduler";
 export { AccountMonitor };
 
 export default {
-  fetch: server.fetch.bind(server),
+  fetch: async (request: Request, env: Env, ctx: ExecutionContext) => {
+    // Handle Better Auth routes directly so we have access to the env bindings
+    if (new URL(request.url).pathname.startsWith("/api/auth/")) {
+      const auth = createAuth(env.DB, env.RESEND_API_KEY);
+      return auth.handler(request);
+    }
+    return (server.fetch as (req: Request, opts: { context: unknown }) => Promise<Response>)(request, {
+      context: { cloudflare: { env, ctx }, request },
+    });
+  },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const db = getDb(env.DB);
@@ -107,7 +117,8 @@ export default {
         }
 
         msg.ack();
-      } catch {
+      } catch (err) {
+        console.error("[queue] job failed", type, JSON.stringify(payload), String(err));
         msg.retry();
       }
     }

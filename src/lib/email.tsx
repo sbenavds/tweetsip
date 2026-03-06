@@ -18,7 +18,7 @@ export function getResend(apiKey: string) {
   return new Resend(apiKey);
 }
 
-const FROM = "TweetSip <hello@tweetsip.com>";
+const FROM = "TweetSip <onboarding@resend.dev>";
 
 // ---- Templates ----
 
