@@ -1,59 +1,72 @@
-import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
-import { useActionState, useOptimistic, useState, useTransition } from "react";
-import { ArrowLeft, X, Plus, Loader2 } from "lucide-react";
-import { signOut } from "@/lib/auth-client";
-import { addAccount, deleteAccount as deleteTrackedAccount } from "@/functions/accounts";
+import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router"
+import { ArrowLeft, Loader2, Plus, X } from "lucide-react"
+import { useActionState, useOptimistic, useState, useTransition } from "react"
+import { addAccount, deleteAccount as deleteTrackedAccount } from "@/functions/accounts"
 import {
   deleteAccount,
   getSettings,
   updateNotifications,
   updateProfile,
-} from "@/functions/settings";
-import type { UserSettings } from "@/server/settings";
+} from "@/functions/settings"
+import { signOut } from "@/lib/auth-client"
+import type { UserSettings } from "@/server/settings"
 
 export const Route = createFileRoute("/settings")({
   loader: async () => {
     try {
-      return await getSettings();
+      return await getSettings()
     } catch (e) {
-      if (e && typeof e === "object" && "to" in e) throw e;
-      throw redirect({ to: "/login" });
+      if (e && typeof e === "object" && "to" in e) throw e
+      throw redirect({ to: "/login" })
     }
   },
   component: SettingsPage,
-});
+})
 
 // ---- Timezone list ----
 
 const TIMEZONES = [
-  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-  "America/Mexico_City", "America/Bogota", "America/Lima", "America/Sao_Paulo",
-  "America/Buenos_Aires", "Europe/London", "Europe/Madrid", "Europe/Paris",
-  "Europe/Berlin", "Europe/Moscow", "Asia/Dubai", "Asia/Kolkata",
-  "Asia/Bangkok", "Asia/Singapore", "Asia/Tokyo", "Asia/Seoul", "Australia/Sydney",
-];
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Mexico_City",
+  "America/Bogota",
+  "America/Lima",
+  "America/Sao_Paulo",
+  "America/Buenos_Aires",
+  "Europe/London",
+  "Europe/Madrid",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Europe/Moscow",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Bangkok",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Asia/Seoul",
+  "Australia/Sydney",
+]
 
 // ---- Sections ----
 
-type SaveState = { ok?: boolean; error?: string } | null;
+type SaveState = { ok?: boolean; error?: string } | null
 
 function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
-  const [state, action, pending] = useActionState<SaveState, FormData>(
-    async (_, formData) => {
-      try {
-        await updateProfile({
-          data: {
-            name: formData.get("name") as string,
-            timezone: formData.get("timezone") as string,
-          },
-        });
-        return { ok: true };
-      } catch {
-        return { error: "Failed to save changes" };
-      }
-    },
-    null,
-  );
+  const [state, action, pending] = useActionState<SaveState, FormData>(async (_, formData) => {
+    try {
+      await updateProfile({
+        data: {
+          name: formData.get("name") as string,
+          timezone: formData.get("timezone") as string,
+        },
+      })
+      return { ok: true }
+    } catch {
+      return { error: "Failed to save changes" }
+    }
+  }, null)
 
   return (
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
@@ -95,7 +108,9 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
             className="select select-bordered w-full"
           >
             {TIMEZONES.map((tz) => (
-              <option key={tz} value={tz}>{tz.replace("_", " ")}</option>
+              <option key={tz} value={tz}>
+                {tz.replace("_", " ")}
+              </option>
             ))}
           </select>
         </div>
@@ -108,48 +123,45 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
         </div>
       </form>
     </section>
-  );
+  )
 }
 
 function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
-  const router = useRouter();
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleting, startDelete] = useTransition();
+  const router = useRouter()
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleting, startDelete] = useTransition()
 
-  const [optimisticAccounts, addOptimistic] = useOptimistic(
-    accounts,
-    (state, handle: string) => [
-      ...state,
-      { id: `optimistic-${handle}`, handle: `@${handle}`, name: handle, avatarUrl: null },
-    ],
-  );
+  const [optimisticAccounts, addOptimistic] = useOptimistic(accounts, (state, handle: string) => [
+    ...state,
+    { id: `optimistic-${handle}`, handle: `@${handle}`, name: handle, avatarUrl: null },
+  ])
 
   const [addState, addAction, addPending] = useActionState(
     async (_: string | undefined, formData: FormData) => {
-      const raw = (formData.get("handle") as string).trim().replace(/^@/, "");
-      if (!raw) return "Enter a valid handle";
-      if (accounts.length >= 5) return "Maximum 5 accounts";
+      const raw = (formData.get("handle") as string).trim().replace(/^@/, "")
+      if (!raw) return "Enter a valid handle"
+      if (accounts.length >= 5) return "Maximum 5 accounts"
       try {
-        addOptimistic(raw);
-        await addAccount({ data: { handle: raw } });
-        router.invalidate();
+        addOptimistic(raw)
+        await addAccount({ data: { handle: raw } })
+        router.invalidate()
       } catch (e) {
-        return e instanceof Error ? e.message : "Failed to add account";
+        return e instanceof Error ? e.message : "Failed to add account"
       }
     },
-    undefined,
-  );
+    undefined
+  )
 
   function handleDelete(accountId: string) {
-    setDeleteError(null);
+    setDeleteError(null)
     startDelete(async () => {
       try {
-        await deleteTrackedAccount({ data: { accountId } });
-        router.invalidate();
+        await deleteTrackedAccount({ data: { accountId } })
+        router.invalidate()
       } catch {
-        setDeleteError("Failed to remove account");
+        setDeleteError("Failed to remove account")
       }
-    });
+    })
   }
 
   return (
@@ -162,9 +174,14 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
       {optimisticAccounts.length > 0 && (
         <ul className="space-y-2">
           {optimisticAccounts.map((a) => (
-            <li key={a.id} className="flex items-center justify-between py-2 border-b border-base-200 last:border-0">
+            <li
+              key={a.id}
+              className="flex items-center justify-between py-2 border-b border-base-200 last:border-0"
+            >
               <div>
-                <p className={`text-sm font-medium text-base-content ${a.id.startsWith("optimistic-") ? "opacity-50" : ""}`}>
+                <p
+                  className={`text-sm font-medium text-base-content ${a.id.startsWith("optimistic-") ? "opacity-50" : ""}`}
+                >
                   {a.name ?? a.handle}
                 </p>
                 <p className="text-xs text-base-content/40">{a.handle}</p>
@@ -207,7 +224,7 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
       )}
       {addState && <p className="text-error text-xs">{addState}</p>}
     </section>
-  );
+  )
 }
 
 function NotificationsSection({ current }: { current: "daily" | "weekly" | "never" | null }) {
@@ -215,21 +232,18 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
     { value: "daily", label: "Daily digest" },
     { value: "weekly", label: "Weekly digest" },
     { value: "never", label: "Never" },
-  ] as const;
+  ] as const
 
-  const [state, action, pending] = useActionState<SaveState, FormData>(
-    async (_, formData) => {
-      try {
-        await updateNotifications({
-          data: { frequency: formData.get("frequency") as "daily" | "weekly" | "never" },
-        });
-        return { ok: true };
-      } catch {
-        return { error: "Failed to save" };
-      }
-    },
-    null,
-  );
+  const [state, action, pending] = useActionState<SaveState, FormData>(async (_, formData) => {
+    try {
+      await updateNotifications({
+        data: { frequency: formData.get("frequency") as "daily" | "weekly" | "never" },
+      })
+      return { ok: true }
+    } catch {
+      return { error: "Failed to save" }
+    }
+  }, null)
 
   return (
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
@@ -258,22 +272,22 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
         </div>
       </form>
     </section>
-  );
+  )
 }
 
 function DangerZone() {
-  const [confirming, setConfirming] = useState(false);
-  const [deleting, startDelete] = useTransition();
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, startDelete] = useTransition()
 
   function handleDelete() {
     startDelete(async () => {
-      await deleteAccount();
-    });
+      await deleteAccount()
+    })
   }
 
   async function handleSignOut() {
-    await signOut();
-    window.location.href = "/login";
+    await signOut()
+    window.location.href = "/login"
   }
 
   return (
@@ -307,7 +321,11 @@ function DangerZone() {
                 disabled={deleting}
                 className="btn btn-error btn-sm"
               >
-                {deleting ? <Loader2 size={13} className="animate-spin" /> : "Yes, delete everything"}
+                {deleting ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  "Yes, delete everything"
+                )}
               </button>
               <button
                 type="button"
@@ -321,13 +339,13 @@ function DangerZone() {
         )}
       </div>
     </section>
-  );
+  )
 }
 
 // ---- Page ----
 
 function SettingsPage() {
-  const { profile, accounts } = Route.useLoaderData();
+  const { profile, accounts } = Route.useLoaderData()
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -345,5 +363,5 @@ function SettingsPage() {
         <DangerZone />
       </div>
     </div>
-  );
+  )
 }

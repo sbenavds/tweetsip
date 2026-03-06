@@ -8,89 +8,76 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as FeedRouteImport } from './routes/feed'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as rootRouteImport } from "./routes/__root"
+import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$"
+import { Route as FeedRouteImport } from "./routes/feed"
+import { Route as IndexRouteImport } from "./routes/index"
+import { Route as LoginRouteImport } from "./routes/login"
+import { Route as OnboardingRouteImport } from "./routes/onboarding"
+import { Route as SettingsRouteImport } from "./routes/settings"
 
 const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+  id: "/settings",
+  path: "/settings",
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
+  id: "/onboarding",
+  path: "/onboarding",
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeedRoute = FeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
+  id: "/feed",
+  path: "/feed",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
+  id: "/api/auth/$",
+  path: "/api/auth/$",
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/feed': typeof FeedRoute
-  '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRoute
-  '/settings': typeof SettingsRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
+  "/": typeof IndexRoute
+  "/feed": typeof FeedRoute
+  "/login": typeof LoginRoute
+  "/onboarding": typeof OnboardingRoute
+  "/settings": typeof SettingsRoute
+  "/api/auth/$": typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/feed': typeof FeedRoute
-  '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRoute
-  '/settings': typeof SettingsRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
+  "/": typeof IndexRoute
+  "/feed": typeof FeedRoute
+  "/login": typeof LoginRoute
+  "/onboarding": typeof OnboardingRoute
+  "/settings": typeof SettingsRoute
+  "/api/auth/$": typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/feed': typeof FeedRoute
-  '/login': typeof LoginRoute
-  '/onboarding': typeof OnboardingRoute
-  '/settings': typeof SettingsRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
+  "/": typeof IndexRoute
+  "/feed": typeof FeedRoute
+  "/login": typeof LoginRoute
+  "/onboarding": typeof OnboardingRoute
+  "/settings": typeof SettingsRoute
+  "/api/auth/$": typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/feed'
-    | '/login'
-    | '/onboarding'
-    | '/settings'
-    | '/api/auth/$'
+  fullPaths: "/" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/feed' | '/login' | '/onboarding' | '/settings' | '/api/auth/$'
-  id:
-    | '__root__'
-    | '/'
-    | '/feed'
-    | '/login'
-    | '/onboarding'
-    | '/settings'
-    | '/api/auth/$'
+  to: "/" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
+  id: "__root__" | "/" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -102,47 +89,47 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
+    "/settings": {
+      id: "/settings"
+      path: "/settings"
+      fullPath: "/settings"
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
+    "/onboarding": {
+      id: "/onboarding"
+      path: "/onboarding"
+      fullPath: "/onboarding"
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
+    "/login": {
+      id: "/login"
+      path: "/login"
+      fullPath: "/login"
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/feed': {
-      id: '/feed'
-      path: '/feed'
-      fullPath: '/feed'
+    "/feed": {
+      id: "/feed"
+      path: "/feed"
+      fullPath: "/feed"
       preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
+    "/": {
+      id: "/"
+      path: "/"
+      fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
+    "/api/auth/$": {
+      id: "/api/auth/$"
+      path: "/api/auth/$"
+      fullPath: "/api/auth/$"
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -161,9 +148,10 @@ export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
+import type { createStart } from "@tanstack/react-start"
+import type { getRouter } from "./router.tsx"
+
+declare module "@tanstack/react-start" {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>

@@ -1,22 +1,22 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useActionState, useTransition } from "react";
-import { Plus, X, ArrowRight, Loader2 } from "lucide-react";
-import { create } from "zustand";
-import { addAccount } from "@/functions/accounts";
-import { guardOnboarding } from "@/functions/guards";
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { ArrowRight, Loader2, Plus, X } from "lucide-react"
+import { useActionState, useTransition } from "react"
+import { create } from "zustand"
+import { addAccount } from "@/functions/accounts"
+import { guardOnboarding } from "@/functions/guards"
 
 export const Route = createFileRoute("/onboarding")({
   loader: () => guardOnboarding(),
   component: OnboardingPage,
-});
+})
 
 // ---- Zustand store ----
 
 type OnboardingStore = {
-  handles: string[];
-  addHandle: (handle: string) => void;
-  removeHandle: (handle: string) => void;
-};
+  handles: string[]
+  addHandle: (handle: string) => void
+  removeHandle: (handle: string) => void
+}
 
 const useOnboarding = create<OnboardingStore>((set) => ({
   handles: [],
@@ -24,14 +24,13 @@ const useOnboarding = create<OnboardingStore>((set) => ({
     set((s) => ({
       handles: s.handles.includes(handle) ? s.handles : [...s.handles, handle],
     })),
-  removeHandle: (handle) =>
-    set((s) => ({ handles: s.handles.filter((h) => h !== handle) })),
-}));
+  removeHandle: (handle) => set((s) => ({ handles: s.handles.filter((h) => h !== handle) })),
+}))
 
 // ---- Components ----
 
 function HandleTag({ handle }: { handle: string }) {
-  const removeHandle = useOnboarding((s) => s.removeHandle);
+  const removeHandle = useOnboarding((s) => s.removeHandle)
 
   return (
     <div className="flex items-center justify-between p-3 bg-base-100 rounded-box border border-base-300 shadow-sm animate-[fadeUp_0.3s_ease_both]">
@@ -45,29 +44,31 @@ function HandleTag({ handle }: { handle: string }) {
         <X size={13} />
       </button>
     </div>
-  );
+  )
 }
 
 function AddHandleForm() {
-  const { handles, addHandle } = useOnboarding();
+  const { handles, addHandle } = useOnboarding()
 
   const [error, action, pending] = useActionState(
     async (_: string | undefined, formData: FormData) => {
-      const raw = (formData.get("handle") as string).trim().replace(/^@/, "");
-      if (!raw) return "Enter a valid handle";
-      if (handles.length >= 5) return "Maximum 5 accounts";
-      if (handles.includes(`@${raw}`)) return "Already added";
-      addHandle(`@${raw}`);
+      const raw = (formData.get("handle") as string).trim().replace(/^@/, "")
+      if (!raw) return "Enter a valid handle"
+      if (handles.length >= 5) return "Maximum 5 accounts"
+      if (handles.includes(`@${raw}`)) return "Already added"
+      addHandle(`@${raw}`)
     },
-    undefined,
-  );
+    undefined
+  )
 
-  if (handles.length >= 5) return null;
+  if (handles.length >= 5) return null
 
   return (
     <div className="space-y-2">
       <form action={action} className="flex gap-2">
-        <label htmlFor="handle" className="sr-only">X handle</label>
+        <label htmlFor="handle" className="sr-only">
+          X handle
+        </label>
         <input
           id="handle"
           name="handle"
@@ -87,22 +88,22 @@ function AddHandleForm() {
       </form>
       {error && <p className="text-error text-xs pl-1">{error}</p>}
     </div>
-  );
+  )
 }
 
 function StepAccounts() {
-  const handles = useOnboarding((s) => s.handles);
-  const navigate = useNavigate();
-  const [saving, startTransition] = useTransition();
+  const handles = useOnboarding((s) => s.handles)
+  const navigate = useNavigate()
+  const [saving, startTransition] = useTransition()
 
   function handleFinish() {
-    if (handles.length === 0) return;
+    if (handles.length === 0) return
     startTransition(async () => {
       for (const handle of handles) {
-        await addAccount({ data: { handle } });
+        await addAccount({ data: { handle } })
       }
-      navigate({ to: "/feed" });
-    });
+      navigate({ to: "/feed" })
+    })
   }
 
   return (
@@ -118,7 +119,9 @@ function StepAccounts() {
 
       {handles.length > 0 && (
         <div className="space-y-2">
-          {handles.map((h) => <HandleTag key={h} handle={h} />)}
+          {handles.map((h) => (
+            <HandleTag key={h} handle={h} />
+          ))}
         </div>
       )}
 
@@ -137,11 +140,13 @@ function StepAccounts() {
         {saving ? (
           <Loader2 size={15} className="animate-spin" />
         ) : (
-          <>Go to my feed <ArrowRight size={15} /></>
+          <>
+            Go to my feed <ArrowRight size={15} />
+          </>
         )}
       </button>
     </div>
-  );
+  )
 }
 
 // ---- Page ----
@@ -167,5 +172,5 @@ function OnboardingPage() {
         </div>
       </div>
     </>
-  );
+  )
 }

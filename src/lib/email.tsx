@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import {
   Body,
   Container,
@@ -10,15 +9,16 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
+} from "@react-email/components"
+import { Resend } from "resend"
 
 // ---- Client ----
 
 export function getResend(apiKey: string) {
-  return new Resend(apiKey);
+  return new Resend(apiKey)
 }
 
-const FROM = "TweetSip <onboarding@resend.dev>";
+const FROM = "TweetSip <onboarding@resend.dev>"
 
 // ---- Templates ----
 
@@ -28,16 +28,27 @@ function BaseLayout({ preview, children }: { preview: string; children: React.Re
       <Head />
       <Preview>{preview}</Preview>
       <Body style={{ backgroundColor: "#f0f4f8", fontFamily: "sans-serif" }}>
-        <Container style={{ maxWidth: 520, margin: "40px auto", backgroundColor: "#ffffff", borderRadius: 16, padding: 32 }}>
+        <Container
+          style={{
+            maxWidth: 520,
+            margin: "40px auto",
+            backgroundColor: "#ffffff",
+            borderRadius: 16,
+            padding: 32,
+          }}
+        >
           {children}
           <Hr style={{ borderColor: "#e2e8f0", margin: "24px 0" }} />
           <Text style={{ fontSize: 12, color: "#a0aec0", textAlign: "center" }}>
-            TweetSip · <Link href="{{{unsubscribe}}}" style={{ color: "#a0aec0" }}>Unsubscribe</Link>
+            TweetSip ·{" "}
+            <Link href="{{{unsubscribe}}}" style={{ color: "#a0aec0" }}>
+              Unsubscribe
+            </Link>
           </Text>
         </Container>
       </Body>
     </Html>
-  );
+  )
 }
 
 // Magic link email (replaces the console.log in auth.ts)
@@ -70,24 +81,24 @@ export function MagicLinkEmail({ url }: { url: string }) {
         If you didn't request this, you can safely ignore this email.
       </Text>
     </BaseLayout>
-  );
+  )
 }
 
 // Daily digest with briefings for each tracked account
 export type DigestAccount = {
-  handle: string;
-  name: string | null;
-  moment: string;
-  forYou: string;
-  engagementScore: number;
-};
+  handle: string
+  name: string | null
+  moment: string
+  forYou: string
+  engagementScore: number
+}
 
 export function DailyDigestEmail({
   accounts,
   appUrl,
 }: {
-  accounts: DigestAccount[];
-  appUrl: string;
+  accounts: DigestAccount[]
+  appUrl: string
 }) {
   return (
     <BaseLayout preview={`Your daily briefing — ${accounts.length} accounts`}>
@@ -113,15 +124,12 @@ export function DailyDigestEmail({
       ))}
 
       <Section style={{ textAlign: "center" }}>
-        <Link
-          href={appUrl}
-          style={{ color: "#1a202c", fontSize: 13, fontWeight: 600 }}
-        >
+        <Link href={appUrl} style={{ color: "#1a202c", fontSize: 13, fontWeight: 600 }}>
           Open full feed →
         </Link>
       </Section>
     </BaseLayout>
-  );
+  )
 }
 
 // Alert for a strong signal (high engagement spike)
@@ -130,9 +138,9 @@ export function StrongSignalEmail({
   moment,
   appUrl,
 }: {
-  handle: string;
-  moment: string;
-  appUrl: string;
+  handle: string
+  moment: string
+  appUrl: string
 }) {
   return (
     <BaseLayout preview={`${handle} is making moves — check it out`}>
@@ -142,19 +150,18 @@ export function StrongSignalEmail({
       <Text style={{ color: "#4a5568", fontSize: 14 }}>
         <strong>{handle}</strong> is seeing unusual activity.
       </Text>
-      <Section style={{ backgroundColor: "#f0f4f8", borderRadius: 12, padding: 16, margin: "16px 0" }}>
+      <Section
+        style={{ backgroundColor: "#f0f4f8", borderRadius: 12, padding: 16, margin: "16px 0" }}
+      >
         <Text style={{ color: "#1a202c", fontSize: 14, margin: 0 }}>{moment}</Text>
       </Section>
       <Section style={{ textAlign: "center" }}>
-        <Link
-          href={appUrl}
-          style={{ color: "#1a202c", fontSize: 13, fontWeight: 600 }}
-        >
+        <Link href={appUrl} style={{ color: "#1a202c", fontSize: 13, fontWeight: 600 }}>
           View briefing →
         </Link>
       </Section>
     </BaseLayout>
-  );
+  )
 }
 
 // Alert for account silence (no posts in 48h)
@@ -163,9 +170,9 @@ export function SilenceAlertEmail({
   hourssilent,
   appUrl,
 }: {
-  handle: string;
-  hourssilent: number;
-  appUrl: string;
+  handle: string
+  hourssilent: number
+  appUrl: string
 }) {
   return (
     <BaseLayout preview={`${handle} has been silent for ${hourssilent}h`}>
@@ -176,15 +183,12 @@ export function SilenceAlertEmail({
         <strong>{handle}</strong> hasn't posted in {hourssilent} hours — that's unusual for them.
       </Text>
       <Section style={{ textAlign: "center", marginTop: 24 }}>
-        <Link
-          href={appUrl}
-          style={{ color: "#1a202c", fontSize: 13, fontWeight: 600 }}
-        >
+        <Link href={appUrl} style={{ color: "#1a202c", fontSize: 13, fontWeight: 600 }}>
           Open TweetSip →
         </Link>
       </Section>
     </BaseLayout>
-  );
+  )
 }
 
 // ---- Send helpers ----
@@ -195,21 +199,21 @@ export async function sendMagicLink(resend: Resend, to: string, url: string) {
     to,
     subject: "Your TweetSip sign-in link",
     react: <MagicLinkEmail url={url} />,
-  });
+  })
 }
 
 export async function sendDailyDigest(
   resend: Resend,
   to: string,
   accounts: DigestAccount[],
-  appUrl: string,
+  appUrl: string
 ) {
   await resend.emails.send({
     from: FROM,
     to,
     subject: "Your daily briefing ☕",
     react: <DailyDigestEmail accounts={accounts} appUrl={appUrl} />,
-  });
+  })
 }
 
 export async function sendStrongSignal(
@@ -217,14 +221,14 @@ export async function sendStrongSignal(
   to: string,
   handle: string,
   moment: string,
-  appUrl: string,
+  appUrl: string
 ) {
   await resend.emails.send({
     from: FROM,
     to,
     subject: `🔥 ${handle} is making moves`,
     react: <StrongSignalEmail handle={handle} moment={moment} appUrl={appUrl} />,
-  });
+  })
 }
 
 export async function sendSilenceAlert(
@@ -232,12 +236,12 @@ export async function sendSilenceAlert(
   to: string,
   handle: string,
   hoursSilent: number,
-  appUrl: string,
+  appUrl: string
 ) {
   await resend.emails.send({
     from: FROM,
     to,
     subject: `🤫 ${handle} has gone quiet`,
     react: <SilenceAlertEmail handle={handle} hourssilent={hoursSilent} appUrl={appUrl} />,
-  });
+  })
 }

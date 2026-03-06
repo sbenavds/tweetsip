@@ -1,11 +1,11 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TanStackDevtools } from "@tanstack/react-devtools"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 
-import appCss from "../styles.css?url";
+import appCss from "../styles.css?url"
 
-const themeScript = `(function(){var t=localStorage.getItem('theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'tweetsip-dark':'tweetsip'):t;document.documentElement.setAttribute('data-theme',d)})()`;
+const themeScript = `(function(){var t=localStorage.getItem('theme')||'system';var d=t==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'tweetsip-dark':'tweetsip'):t;document.documentElement.setAttribute('data-theme',d)})()`
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,7 +15,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
-});
+})
 
 export const Route = createRootRoute({
   head: () => ({
@@ -32,7 +32,7 @@ export const Route = createRootRoute({
       <Outlet />
     </QueryClientProvider>
   ),
-});
+})
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -51,5 +51,5 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
-  );
+  )
 }

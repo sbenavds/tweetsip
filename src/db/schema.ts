@@ -1,5 +1,5 @@
-import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { relations, sql } from "drizzle-orm"
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 // ---- Better Auth tables ----
 
@@ -11,15 +11,13 @@ export const magicLink = sqliteTable("magic_link", {
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
-});
+})
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" })
-    .default(false)
-    .notNull(),
+  emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
   image: text("image"),
   timezone: text("timezone").default("UTC"),
   notificationFrequency: text("notification_frequency", {
@@ -32,7 +30,7 @@ export const user = sqliteTable("user", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => new Date())
     .notNull(),
-});
+})
 
 export const session = sqliteTable(
   "session",
@@ -52,8 +50,8 @@ export const session = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)],
-);
+  (table) => [index("session_userId_idx").on(table.userId)]
+)
 
 export const account = sqliteTable(
   "account",
@@ -82,8 +80,8 @@ export const account = sqliteTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("account_userId_idx").on(table.userId)],
-);
+  (table) => [index("account_userId_idx").on(table.userId)]
+)
 
 export const verification = sqliteTable(
   "verification",
@@ -100,8 +98,8 @@ export const verification = sqliteTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)],
-);
+  (table) => [index("verification_identifier_idx").on(table.identifier)]
+)
 
 // ---- App tables ----
 
@@ -117,7 +115,7 @@ export const trackedAccounts = sqliteTable("tracked_accounts", {
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
-});
+})
 
 export const posts = sqliteTable("posts", {
   id: text("id").primaryKey(),
@@ -132,7 +130,7 @@ export const posts = sqliteTable("posts", {
   fetchedAt: integer("fetched_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
-});
+})
 
 export const briefings = sqliteTable("briefings", {
   id: text("id").primaryKey(),
@@ -149,22 +147,25 @@ export const briefings = sqliteTable("briefings", {
   generatedAt: integer("generated_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
-});
+})
 
 // ---- Relations ----
 
 export const trackedAccountsRelations = relations(trackedAccounts, ({ many }) => ({
   posts: many(posts),
   briefings: many(briefings),
-}));
+}))
 
 export const postsRelations = relations(posts, ({ one }) => ({
   account: one(trackedAccounts, { fields: [posts.accountId], references: [trackedAccounts.id] }),
-}));
+}))
 
 export const briefingsRelations = relations(briefings, ({ one }) => ({
-  account: one(trackedAccounts, { fields: [briefings.accountId], references: [trackedAccounts.id] }),
-}));
+  account: one(trackedAccounts, {
+    fields: [briefings.accountId],
+    references: [trackedAccounts.id],
+  }),
+}))
 
 export const notifications = sqliteTable("notifications", {
   id: text("id").primaryKey(),
@@ -178,4 +179,4 @@ export const notifications = sqliteTable("notifications", {
   sentAt: integer("sent_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
-});
+})

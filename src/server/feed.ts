@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import type * as schema from "@/db/schema";
-import { trackedAccounts } from "@/db/schema";
+import { eq } from "drizzle-orm"
+import type { DrizzleD1Database } from "drizzle-orm/d1"
+import type * as schema from "@/db/schema"
+import { trackedAccounts } from "@/db/schema"
 
-type Db = DrizzleD1Database<typeof schema>;
+type Db = DrizzleD1Database<typeof schema>
 
 export async function getFeedAccounts(db: Db, userId: string) {
   const accounts = await db.query.trackedAccounts.findMany({
@@ -19,7 +19,7 @@ export async function getFeedAccounts(db: Db, userId: string) {
         columns: { id: true, text: true, likes: true },
       },
     },
-  });
+  })
 
   return accounts.map((a) => ({
     id: a.id,
@@ -36,7 +36,7 @@ export async function getFeedAccounts(db: Db, userId: string) {
         }
       : null,
     posts: a.posts.map((p) => ({ id: p.id, text: p.text, likes: p.likes ?? 0 })),
-  }));
+  }))
 }
 
-export type FeedAccount = Awaited<ReturnType<typeof getFeedAccounts>>[number];
+export type FeedAccount = Awaited<ReturnType<typeof getFeedAccounts>>[number]
