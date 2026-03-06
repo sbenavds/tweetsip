@@ -15,6 +15,7 @@ declare namespace Cloudflare {
 		BETTER_AUTH_URL: string;
 		X_BEARER_TOKEN: string;
 		GROQ_API_KEY: string;
+		CF_AI_GATEWAY_TOKEN: string;
 		CLOUDFLARE_ACCOUNT_ID: string;
 		RESEND_API_KEY: string;
 		ACCOUNT_MONITOR: DurableObjectNamespace<import("./src/worker").AccountMonitor>;

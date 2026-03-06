@@ -88,7 +88,14 @@ export async function generateBriefing(
     .map((p, i) => `${i + 1}. "${p.text}" (likes: ${p.likes}, reposts: ${p.reposts})`)
     .join("\n")
 
-  const groq = createGroq({ apiKey: env.GROQ_API_KEY })
+  const groq = createGroq({
+    apiKey: env.GROQ_API_KEY,
+    baseURL:
+      "https://gateway.ai.cloudflare.com/v1/55ad18229338eb703042605a69428ea9/tweetsip/groq/openai/v1",
+    headers: {
+      "cf-aig-authorization": `Bearer ${env.CF_AI_GATEWAY_TOKEN}`,
+    },
+  })
 
   const { object: content } = await generateObject({
     model: groq("llama-3.3-70b-versatile"),
