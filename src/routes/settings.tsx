@@ -73,10 +73,12 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
 
   return (
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
-      <h2 className="font-bold text-base-content">Profile</h2>
+      <h2 className="text-xs font-semibold tracking-wide uppercase text-base-content/40">
+        Profile
+      </h2>
       <form action={action} className="space-y-3">
         <div>
-          <label className="text-xs font-medium text-base-content/60 mb-1 block" htmlFor="name">
+          <label className="text-xs font-medium text-base-content/50 mb-1 block" htmlFor="name">
             Name
           </label>
           <input
@@ -89,19 +91,11 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-base-content/60 mb-1 block" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={profile.email}
-            disabled
-            className="input w-full bg-base-200 opacity-50"
-          />
+          <p className="text-xs font-medium text-base-content/50 mb-1">Email</p>
+          <p className="text-sm text-base-content/40 py-1">{profile.email}</p>
         </div>
         <div>
-          <label className="text-xs font-medium text-base-content/60 mb-1 block" htmlFor="timezone">
+          <label className="text-xs font-medium text-base-content/50 mb-1 block" htmlFor="timezone">
             Timezone
           </label>
           <select
@@ -112,7 +106,7 @@ function ProfileSection({ profile }: { profile: UserSettings["profile"] }) {
           >
             {TIMEZONES.map((tz) => (
               <option key={tz} value={tz}>
-                {tz.replace("_", " ")}
+                {tz.replaceAll("_", " ")}
               </option>
             ))}
           </select>
@@ -173,8 +167,10 @@ function AccountsSection({ accounts }: { accounts: UserSettings["accounts"] }) {
   return (
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-base-content">Accounts</h2>
-        <span className="text-xs text-base-content/40">{optimisticAccounts.length}/5</span>
+        <h2 className="text-xs font-semibold tracking-wide uppercase text-base-content/40">
+          Accounts
+        </h2>
+        <span className="text-xs text-base-content/30">{optimisticAccounts.length}/5</span>
       </div>
 
       {optimisticAccounts.length > 0 && (
@@ -255,7 +251,9 @@ function NotificationsSection({ current }: { current: "daily" | "weekly" | "neve
 
   return (
     <section className="bg-base-100 rounded-box border border-base-200 p-5 space-y-4">
-      <h2 className="font-bold text-base-content">Notifications</h2>
+      <h2 className="text-xs font-semibold tracking-wide uppercase text-base-content/40">
+        Notifications
+      </h2>
       <form action={action} className="space-y-3">
         <div className="space-y-1">
           {options.map((opt) => (
@@ -297,7 +295,7 @@ function DangerZone() {
 
   return (
     <section className="bg-base-100 rounded-box border border-error/20 p-5 space-y-4">
-      <h2 className="font-bold text-base-content">Danger zone</h2>
+      <h2 className="text-xs font-semibold tracking-wide uppercase text-error/50">Danger zone</h2>
       <div className="flex flex-col gap-3">
         {!confirming ? (
           <button
@@ -352,13 +350,13 @@ function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-base-200">
-      <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
-        <div className="flex items-center justify-between mb-2">
+      <div className="max-w-xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Link to="/feed" className="btn btn-ghost btn-square btn-sm text-base-content/50">
               <ArrowLeft size={15} />
             </Link>
-            <h1 className="text-xl font-extrabold text-base-content tracking-tight">Settings</h1>
+            <h1 className="text-xl font-bold text-base-content tracking-tight">Settings</h1>
           </div>
           <button
             type="button"
@@ -369,10 +367,15 @@ function SettingsPage() {
           </button>
         </div>
 
-        <ProfileSection profile={profile} />
-        <AccountsSection accounts={accounts} />
-        <NotificationsSection current={profile.notificationFrequency} />
-        <DangerZone />
+        <div className="space-y-4">
+          <ProfileSection profile={profile} />
+          <AccountsSection accounts={accounts} />
+          <NotificationsSection current={profile.notificationFrequency} />
+        </div>
+
+        <div className="mt-8">
+          <DangerZone />
+        </div>
       </div>
     </div>
   )
