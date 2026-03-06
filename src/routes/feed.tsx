@@ -1,6 +1,16 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router"
-import { Monitor, Moon, Plus, RefreshCw, Settings, Sun } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  Coffee,
+  Monitor,
+  Moon,
+  Plus,
+  RefreshCw,
+  Settings,
+  Sun,
+} from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 import { getFeed } from "@/functions/feed"
 import { triggerFetch } from "@/functions/scheduler"
@@ -214,7 +224,7 @@ function TabBar({
               : "border-transparent text-base-content/30"
           }`}
         >
-          <span className="text-[13px]">☕</span>
+          <Coffee size={13} />
           <span className={`text-[13px] ${sipActive ? "font-semibold" : "font-normal"}`}>
             The Sip
           </span>
@@ -347,7 +357,7 @@ function SipView({
           suppressHydrationWarning
           className="font-serif text-[26px] font-bold tracking-tight text-base-content"
         >
-          {greeting()} ☕
+          {greeting()} <Coffee size={22} className="inline-block align-[-3px]" />
         </h2>
       </div>
 
@@ -405,7 +415,7 @@ function SipView({
                   onClick={() => onReadThread(a.id)}
                   className="text-[12px] text-blue-600 font-semibold bg-transparent border-0 cursor-pointer p-0 hover:text-blue-700 transition-colors"
                 >
-                  Read thread →
+                  Read thread <ArrowRight size={11} className="inline-block" />
                 </button>
               )}
             </div>
@@ -574,7 +584,7 @@ function InsightsView({
         onClick={onBack}
         className="text-[12px] text-base-content/35 hover:text-base-content/55 transition-colors py-3 block bg-transparent border-0 cursor-pointer"
       >
-        ← Back to The Sip
+        <ArrowLeft size={12} className="inline-block mr-1" /> Back to The Sip
       </button>
     </div>
   )
@@ -669,7 +679,7 @@ function FeedPage() {
               onClick={goBack}
               className="text-sm text-base-content/35 hover:text-base-content/55 transition-colors"
             >
-              ← Back to feed
+              <ArrowLeft size={12} className="inline-block mr-1" /> Back to feed
             </button>
           </div>
         )}
