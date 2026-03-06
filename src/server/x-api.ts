@@ -45,7 +45,7 @@ export async function fetchUserByHandle(
 export async function fetchUserTimeline(
   xUserId: string,
   bearerToken: string,
-  maxResults = 5
+  maxResults = 20
 ): Promise<XPost[]> {
   const params = new URLSearchParams({
     max_results: String(maxResults),

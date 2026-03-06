@@ -18,7 +18,7 @@ export async function getFeedAccounts(db: Db, userId: string) {
       },
       posts: {
         orderBy: (p, { desc }) => [desc(p.postedAt)],
-        limit: 10,
+        limit: 20,
         columns: { id: true, text: true, likes: true, reposts: true, postedAt: true },
       },
     },

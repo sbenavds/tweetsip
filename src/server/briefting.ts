@@ -79,7 +79,7 @@ export async function generateBriefing(
   const recentPosts = await db.query.posts.findMany({
     where: eq(posts.accountId, accountId),
     orderBy: (p, { desc }) => desc(p.postedAt),
-    limit: 10,
+    limit: 20,
   })
 
   if (recentPosts.length === 0) throw new Error("No posts to analyze")

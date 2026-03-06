@@ -470,6 +470,7 @@ function InsightsView({
   onBack: () => void
 }) {
   const { briefing, posts } = account
+  const [visibleCount, setVisibleCount] = useState(5)
   const highlights = (briefing?.highlights ?? []) as Highlight[]
   const moods =
     briefing?.mood
@@ -558,9 +559,22 @@ function InsightsView({
               Top posts today
             </span>
           </div>
-          {posts.slice(0, 5).map((post, i) => (
-            <PostRow key={post.id} post={post} isLast={i === Math.min(posts.length, 5) - 1} />
+          {posts.slice(0, visibleCount).map((post, i) => (
+            <PostRow
+              key={post.id}
+              post={post}
+              isLast={i === Math.min(posts.length, visibleCount) - 1}
+            />
           ))}
+          {visibleCount < posts.length && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((n) => Math.min(n + 5, posts.length))}
+              className="w-full py-2.5 text-[11px] font-medium text-base-content/40 hover:text-base-content/60 transition-colors"
+            >
+              Show more
+            </button>
+          )}
         </div>
       )}
 
