@@ -28,7 +28,7 @@ Analyze the posts and return a JSON object with exactly these fields:
 
 - moment: A 2–3 sentence narrative of what this account is actively doing RIGHT NOW. Name the specific angle, campaign, or push. What story are they telling? What pattern emerges across these posts? Max 280 chars.
 - topPostSummary: Why did the top-performing post actually land? Identify the specific hook, mechanic, or emotional trigger — not what it said, but why it worked. Max 200 chars.
-- forYou: One sharp, actionable signal. A window to act, a trend emerging, a risk to note, or a timing insight. Be specific — not "engage with their content" but something a strategist can actually use. Max 200 chars.
+- forYou: A concrete tweet angle or post suggestion for the person monitoring this account. What should they post RIGHT NOW to ride this wave, counter this narrative, or insert themselves into this conversation? Give the hook or framing — not generic advice. Max 200 chars.
 - engagementScore: 0–100. Baseline 50 = normal. 75+ = notably high. 90+ = exceptional/viral. Under 30 = low traction or silence.
 - mood: 2–4 words capturing the emotional register of recent posts (e.g., "Triumphant + Promotional", "Defensive + Aggressive", "Quiet + Strategic"). Max 60 chars.
 - sentiment: Object with "positive", "neutral", "negative" as integers that sum to exactly 100. Based on tone and intent of the posts.
