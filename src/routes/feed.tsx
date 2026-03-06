@@ -1,11 +1,13 @@
-import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useEffect, useState, useTransition } from "react";
 import { Monitor, Moon, RefreshCw, Settings, Sun } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFeed } from "@/functions/feed";
 import { triggerFetch } from "@/functions/scheduler";
 import type { FeedAccount } from "@/server/feed";
 import { useThemeStore } from "@/lib/store";
 import type { ThemePref } from "@/lib/store";
+import { feedQueryOptions } from "@/lib/queries/feed";
 
 export const Route = createFileRoute("/feed")({
   loader: async () => {
@@ -16,6 +18,9 @@ export const Route = createFileRoute("/feed")({
       throw redirect({ to: "/login" });
     }
   },
+  pendingMs: 300,
+  pendingMinMs: 200,
+  pendingComponent: FeedSkeleton,
   component: FeedPage,
 });
 
@@ -50,6 +55,72 @@ const STATUS_COLOR: Record<string, string> = {
   pivot: "text-warning",
   silence: "text-base-content/40",
 };
+
+// ---- Skeletons ----
+
+function BriefingSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-3 bg-base-300 rounded w-full" />
+        <div className="h-3 bg-base-300 rounded w-4/5" />
+      </div>
+      <div className="bg-base-200 rounded-xl p-4 flex gap-3">
+        <div className="w-10 h-10 rounded-full bg-base-300 shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-2 bg-base-300 rounded w-16" />
+          <div className="h-3 bg-base-300 rounded w-full" />
+          <div className="h-3 bg-base-300 rounded w-3/4" />
+        </div>
+      </div>
+      <div className="bg-base-200/60 rounded-xl p-4">
+        <div className="h-3 bg-base-300 rounded w-full" />
+        <div className="h-3 bg-base-300 rounded w-2/3 mt-2" />
+      </div>
+    </div>
+  );
+}
+
+function AccountCardSkeleton() {
+  return (
+    <div className="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden animate-pulse">
+      <div className="p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-base-300 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-base-300 rounded w-32" />
+            <div className="h-3 bg-base-300 rounded w-20" />
+          </div>
+          <div className="h-3 bg-base-300 rounded w-14" />
+        </div>
+        <BriefingSkeleton />
+      </div>
+    </div>
+  );
+}
+
+function FeedSkeleton() {
+  return (
+    <div className="min-h-screen bg-base-200">
+      <div className="max-w-xl mx-auto px-4 py-8 space-y-4">
+        <div className="flex items-start justify-between mb-2">
+          <div className="space-y-2 animate-pulse">
+            <div className="h-7 bg-base-300 rounded w-28" />
+            <div className="h-3 bg-base-300 rounded w-24" />
+          </div>
+          <div className="flex gap-2 animate-pulse">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="w-8 h-8 bg-base-300 rounded" />
+            ))}
+          </div>
+        </div>
+        <AccountCardSkeleton />
+        <AccountCardSkeleton />
+        <AccountCardSkeleton />
+      </div>
+    </div>
+  );
+}
 
 // ---- Sub-components ----
 
@@ -110,7 +181,7 @@ function PostRow({ text, likes }: { text: string; likes: number }) {
   );
 }
 
-function AccountCard({ account }: { account: FeedAccount }) {
+function AccountCard({ account, polling }: { account: FeedAccount; polling: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const { briefing, posts } = account;
   const score = briefing?.engagementScore ?? null;
@@ -133,10 +204,8 @@ function AccountCard({ account }: { account: FeedAccount }) {
 
         {briefing ? (
           <>
-            {/* Moment */}
             <p className="text-sm text-base-content leading-relaxed">{briefing.moment}</p>
 
-            {/* Top Post */}
             {briefing.topPostSummary && (
               <div className="bg-base-200 rounded-xl p-4 flex gap-3">
                 <ScoreCircle score={briefing.engagementScore} />
@@ -151,7 +220,6 @@ function AccountCard({ account }: { account: FeedAccount }) {
               </div>
             )}
 
-            {/* For You */}
             {briefing.forYou && (
               <div className="bg-base-200/60 rounded-xl p-4 flex gap-2">
                 <span className="text-base-content/40 text-sm mt-0.5">→</span>
@@ -159,12 +227,13 @@ function AccountCard({ account }: { account: FeedAccount }) {
               </div>
             )}
           </>
+        ) : polling ? (
+          <BriefingSkeleton />
         ) : (
           <p className="text-sm text-base-content/40 italic">No briefing yet — queued.</p>
         )}
       </div>
 
-      {/* Toggle */}
       {posts.length > 0 && (
         <button
           type="button"
@@ -176,7 +245,6 @@ function AccountCard({ account }: { account: FeedAccount }) {
         </button>
       )}
 
-      {/* Expanded posts */}
       {expanded && posts.length > 0 && (
         <div className="px-5 pb-4 border-t border-base-200">
           <p className="text-[10px] font-bold text-base-content/40 tracking-widest uppercase py-3">
@@ -198,50 +266,42 @@ const THEME_ICON: Record<ThemePref, React.ReactNode> = {
 };
 
 function FeedPage() {
-  const accounts: FeedAccount[] = Route.useLoaderData() ?? [];
+  const loaderData = Route.useLoaderData();
+  const queryClient = useQueryClient();
   const { pref, cycle } = useThemeStore();
-  const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
-  const [queued, setQueued] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const snapshotRef = useRef<{ briefingCount: number; latestAt: string | undefined }>({
-    briefingCount: 0,
-    latestAt: undefined,
+  const [isPending, startTransition] = useTransition();
+
+  // null = idle, number = briefing count at time of trigger (polling active)
+  const [briefingSnapshot, setBriefingSnapshot] = useState<number | null>(null);
+  const polling = briefingSnapshot !== null;
+
+  const { data: accounts = [] } = useQuery({
+    ...feedQueryOptions(),
+    initialData: loaderData,
+    refetchInterval: polling ? 3000 : false,
   });
 
-  function stopPolling() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-    setQueued(false);
-  }
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    try {
-      await triggerFetch();
-    } finally {
-      setRefreshing(false);
-    }
-    snapshotRef.current = {
-      briefingCount: accounts.filter((a) => a.briefing).length,
-      latestAt: latestUpdate,
-    };
-    setQueued(true);
-    pollRef.current = setInterval(() => router.invalidate(), 3000);
-    setTimeout(stopPolling, 30000);
-  }
-
-  // Stop polling once briefings actually update
+  // Stop polling when new briefings arrive
   useEffect(() => {
-    if (!queued) return;
-    const newCount = accounts.filter((a) => a.briefing).length;
-    const newLatest = accounts.map((a) => a.briefing?.generatedAt).filter(Boolean).sort().at(-1);
-    if (newCount > snapshotRef.current.briefingCount || newLatest !== snapshotRef.current.latestAt) {
-      stopPolling();
-    }
-  }, [accounts, queued]);
+    if (briefingSnapshot === null) return;
+    const count = accounts.filter((a) => a.briefing).length;
+    if (count > briefingSnapshot) setBriefingSnapshot(null);
+  }, [accounts, briefingSnapshot]);
+
+  // Hard stop at 30s
+  useEffect(() => {
+    if (briefingSnapshot === null) return;
+    const id = setTimeout(() => setBriefingSnapshot(null), 30_000);
+    return () => clearTimeout(id);
+  }, [briefingSnapshot]);
+
+  function handleRefresh() {
+    startTransition(async () => {
+      setBriefingSnapshot(accounts.filter((a) => a.briefing).length);
+      await triggerFetch();
+      queryClient.invalidateQueries({ queryKey: ["feed"] });
+    });
+  }
 
   const latestUpdate = accounts
     .map((a) => a.briefing?.generatedAt)
@@ -284,11 +344,11 @@ function FeedPage() {
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={isPending}
               className="btn btn-ghost btn-square btn-sm text-base-content/50 hover:text-base-content"
               aria-label="Refresh feed"
             >
-              <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+              <RefreshCw size={15} className={isPending || polling ? "animate-spin" : ""} />
             </button>
             <button
               type="button"
@@ -308,13 +368,6 @@ function FeedPage() {
           </div>
         </div>
 
-        {/* Queued notice */}
-        {queued && (
-          <div className="bg-base-100 rounded-box border border-success/30 px-4 py-3 text-sm text-success/80">
-            Jobs queued — updating in a few seconds…
-          </div>
-        )}
-
         {/* Global insight */}
         {topInsight && (
           <div className="bg-base-100 rounded-box border border-base-200 px-4 py-3">
@@ -323,13 +376,9 @@ function FeedPage() {
         )}
 
         {/* Cards */}
-        {accounts.length === 0 ? (
-          <div className="text-center py-20 text-base-content/30 text-sm">
-            No accounts yet. <a href="/onboarding" className="underline">Add one.</a>
-          </div>
-        ) : (
-          accounts.map((account) => <AccountCard key={account.id} account={account} />)
-        )}
+        {accounts.map((account) => (
+          <AccountCard key={account.id} account={account} polling={polling} />
+        ))}
       </div>
     </div>
   );
