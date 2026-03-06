@@ -9,70 +9,68 @@ export const Route = createFileRoute("/")({
 
 const FEATURES = [
   {
-    icon: <BarChart2 size={20} />,
+    icon: <BarChart2 size={16} />,
     title: "Signal, not noise",
-    desc: "AI scores engagement so you instantly know who's moving and who's gone quiet.",
+    desc: "AI scores engagement so you instantly see who's surging and who's gone quiet.",
   },
   {
-    icon: <Zap size={20} />,
+    icon: <Zap size={16} />,
     title: "Briefings that act",
-    desc: "Every account gets a moment summary and a tactical recommendation tailored to you.",
+    desc: "Every account gets a summary and a tactical recommendation — written for you.",
   },
   {
-    icon: <Bell size={20} />,
-    title: "Alerts when it counts",
-    desc: "Get notified on strong signals and silence — before the window closes.",
+    icon: <Bell size={16} />,
+    title: "Alerts before the window closes",
+    desc: "Strong signal or 48h silence — you hear about it before everyone else does.",
   },
 ]
 
 function LandingPage() {
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
+
       {/* Nav */}
-      <nav className="w-full px-6 py-4 flex items-center justify-between max-w-5xl mx-auto">
-        <span className="font-extrabold text-base-content tracking-tight">TweetSip</span>
+      <nav className="max-w-4xl mx-auto w-full px-6 py-5 flex items-center justify-between">
+        <span className="text-lg font-bold text-base-content tracking-tight">TweetSip</span>
         <Link to="/login" className="btn btn-neutral btn-sm gap-1.5">
           Get started <ArrowRight size={13} />
         </Link>
       </nav>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 pt-16 pb-12 text-center space-y-6">
-        <h1 className="text-5xl font-extrabold text-base-content tracking-tight leading-tight">
-          Your Twitter intelligence
-          <br className="hidden sm:block" /> briefing, daily.
+      <section className="max-w-3xl mx-auto px-6 pt-12 pb-10 text-center space-y-5">
+        <h1 className="text-5xl font-extrabold text-base-content tracking-tight leading-[1.1]">
+          Stay ahead of every<br className="hidden sm:block" /> account that matters.
         </h1>
-        <p className="text-lg text-base-content/50 max-w-lg mx-auto leading-relaxed">
-          Track the accounts that matter. Get AI-powered briefings on what's moving, what's silent,
-          and exactly what to do about it.
+        <p className="text-lg text-base-content/50 max-w-md mx-auto leading-relaxed">
+          TweetSip tracks your key X accounts and delivers daily AI briefings — who's surging, who's silent, and what to do about it.
         </p>
         <Link to="/login" className="btn btn-neutral btn-lg gap-2 mx-auto">
           Get started free <ArrowRight size={16} />
         </Link>
       </section>
 
-      {/* Hero image */}
-      <section className="max-w-4xl mx-auto px-6 pb-20 w-full">
-        <div className="relative rounded-2xl overflow-hidden shadow-lg">
+      {/* Hero image — no shadow, gradient blends into page */}
+      <section className="max-w-4xl mx-auto px-6 pb-16 w-full">
+        <div className="relative rounded-2xl overflow-hidden">
           <img
             src="/hero.png"
-            alt="Accounts flow into AI, AI generates a summarized digest"
+            alt="Tracked accounts flow into AI, which generates a summarized email digest"
             className="w-full"
           />
-          <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-base-200 to-transparent" />
+          <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-base-200 to-transparent" />
         </div>
       </section>
 
       {/* Features */}
-      <section className="max-w-4xl mx-auto px-6 pb-20 w-full">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section className="max-w-4xl mx-auto px-6 pb-16 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className="bg-base-100 rounded-box border border-base-200 p-6 space-y-3"
-            >
-              <span className="text-base-content/40">{f.icon}</span>
-              <p className="font-semibold text-base-content">{f.title}</p>
+            <div key={f.title} className="bg-base-100 rounded-box border border-base-200 p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-base-content/40 shrink-0">{f.icon}</span>
+                <p className="font-semibold text-base-content text-sm">{f.title}</p>
+              </div>
               <p className="text-sm text-base-content/50 leading-relaxed">{f.desc}</p>
             </div>
           ))}
@@ -80,9 +78,9 @@ function LandingPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="max-w-4xl mx-auto px-6 pb-24 w-full text-center space-y-4">
-        <h2 className="text-2xl font-extrabold text-base-content">Ready to sip smarter?</h2>
-        <p className="text-base-content/50 text-sm">Free to start. No credit card required.</p>
+      <section className="max-w-4xl mx-auto px-6 pb-24 w-full text-center space-y-3">
+        <h2 className="text-2xl font-bold text-base-content">Track five accounts.<br />Get your first briefing in minutes.</h2>
+        <p className="text-sm text-base-content/40">Free to start. No credit card required.</p>
         <Link to="/login" className="btn btn-neutral btn-lg gap-2 mx-auto">
           Get started <ArrowRight size={16} />
         </Link>
@@ -90,8 +88,9 @@ function LandingPage() {
 
       {/* Footer */}
       <div className="mt-auto text-center py-6 text-xs text-base-content/30">
-        TweetSip · Built on Cloudflare
+        © {new Date().getFullYear()} TweetSip
       </div>
+
     </div>
   )
 }
