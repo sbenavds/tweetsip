@@ -1,6 +1,6 @@
 import { createGroq } from "@ai-sdk/groq"
 import { generateText } from "ai"
-import { eq } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 import type { DrizzleD1Database } from "drizzle-orm/d1"
 import { z } from "zod"
 import type * as schema from "@/db/schema"
@@ -64,6 +64,39 @@ Strict rules:
 - themes should be specific topics, not generic categories like "Politics" or "Business"
 - highlights must be 3 distinct observations — no repeating the same theme in different words`
 
+export type BriefingContent = z.infer<typeof briefingSchema>
+
+/** Call Groq and return the parsed briefing — no DB writes. */
+export async function createBriefingContent(
+  env: Env,
+  handle: string,
+  postsData: { text: string; likes: number; reposts: number }[]
+): Promise<BriefingContent> {
+  const postsText = postsData
+    .map((p, i) => `${i + 1}. "${p.text}" (likes: ${p.likes}, reposts: ${p.reposts})`)
+    .join("\n")
+
+  const groq = createGroq({
+    apiKey: env.GROQ_API_KEY,
+    baseURL:
+      "https://gateway.ai.cloudflare.com/v1/55ad18229338eb703042605a69428ea9/tweetsip/groq/openai/v1",
+    headers: {
+      "cf-aig-authorization": `Bearer ${env.CF_AI_GATEWAY_TOKEN}`,
+    },
+  })
+
+  const { text } = await generateText({
+    model: groq("llama-3.3-70b-versatile"),
+    system: SYSTEM_PROMPT,
+    prompt: `Analyze these ${postsData.length} recent posts from ${handle}:\n\n${postsText}\n\nReturn only valid JSON.`,
+  })
+
+  const jsonStart = text.indexOf("{")
+  const jsonEnd = text.lastIndexOf("}")
+  if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON in AI response")
+  return briefingSchema.parse(JSON.parse(text.slice(jsonStart, jsonEnd + 1)))
+}
+
 export async function generateBriefing(
   db: Db,
   env: Env,
@@ -84,29 +117,33 @@ export async function generateBriefing(
 
   if (recentPosts.length === 0) throw new Error("No posts to analyze")
 
-  const postsText = recentPosts
-    .map((p, i) => `${i + 1}. "${p.text}" (likes: ${p.likes}, reposts: ${p.reposts})`)
-    .join("\n")
+  // Dedup: skip Groq call if we already have a briefing for this exact set of posts
+  const sortedIds = recentPosts.map((p) => p.id).sort()
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(sortedIds.join(","))
+  )
+  const postsHash = [...new Uint8Array(hashBuffer)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
 
-  const groq = createGroq({
-    apiKey: env.GROQ_API_KEY,
-    baseURL:
-      "https://gateway.ai.cloudflare.com/v1/55ad18229338eb703042605a69428ea9/tweetsip/groq/openai/v1",
-    headers: {
-      "cf-aig-authorization": `Bearer ${env.CF_AI_GATEWAY_TOKEN}`,
-    },
+  const latestBriefing = await db.query.briefings.findFirst({
+    where: eq(briefings.accountId, accountId),
+    orderBy: [desc(briefings.generatedAt)],
+    columns: { postsHash: true },
   })
 
-  const { text } = await generateText({
-    model: groq("llama-3.3-70b-versatile"),
-    system: SYSTEM_PROMPT,
-    prompt: `Analyze these ${recentPosts.length} recent posts from ${account.handle}:\n\n${postsText}\n\nReturn only valid JSON.`,
-  })
+  if (latestBriefing?.postsHash === postsHash) return
 
-  const jsonStart = text.indexOf("{")
-  const jsonEnd = text.lastIndexOf("}")
-  if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON in AI response")
-  const content = briefingSchema.parse(JSON.parse(text.slice(jsonStart, jsonEnd + 1)))
+  const content = await createBriefingContent(
+    env,
+    account.handle,
+    recentPosts.map((p) => ({
+      text: p.text,
+      likes: p.likes ?? 0,
+      reposts: p.reposts ?? 0,
+    }))
+  )
 
   await db.insert(briefings).values({
     id: crypto.randomUUID(),
@@ -120,5 +157,6 @@ export async function generateBriefing(
     sentiment: JSON.stringify(content.sentiment),
     themes: JSON.stringify(content.themes),
     highlights: JSON.stringify(content.highlights),
+    postsHash,
   })
 }

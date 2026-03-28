@@ -9,6 +9,7 @@
   },
   "vars": {
     "BETTER_AUTH_URL": "https://tweetsip.sbenavds-account.workers.dev",
+    "DEMO_USER_ID": "UXUqg5ODWjsgIvx2DnC0sbN02k0xSPdZ",
   },
   "triggers": {
     "crons": ["0 8 * * *", "0 * * * *"],

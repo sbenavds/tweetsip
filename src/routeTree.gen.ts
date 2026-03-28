@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$"
+import { Route as DemoRouteImport } from "./routes/demo"
 import { Route as FeedRouteImport } from "./routes/feed"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as LoginRouteImport } from "./routes/login"
@@ -36,6 +37,11 @@ const FeedRoute = FeedRouteImport.update({
   path: "/feed",
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoRoute = DemoRouteImport.update({
+  id: "/demo",
+  path: "/demo",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
@@ -49,6 +55,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/demo": typeof DemoRoute
   "/feed": typeof FeedRoute
   "/login": typeof LoginRoute
   "/onboarding": typeof OnboardingRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/demo": typeof DemoRoute
   "/feed": typeof FeedRoute
   "/login": typeof LoginRoute
   "/onboarding": typeof OnboardingRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/demo": typeof DemoRoute
   "/feed": typeof FeedRoute
   "/login": typeof LoginRoute
   "/onboarding": typeof OnboardingRoute
@@ -74,14 +83,15 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
+  fullPaths: "/" | "/demo" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
-  id: "__root__" | "/" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
+  to: "/" | "/demo" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
+  id: "__root__" | "/" | "/demo" | "/feed" | "/login" | "/onboarding" | "/settings" | "/api/auth/$"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DemoRoute: typeof DemoRoute
   FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -119,6 +129,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/demo": {
+      id: "/demo"
+      path: "/demo"
+      fullPath: "/demo"
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/": {
       id: "/"
       path: "/"
@@ -138,6 +155,7 @@ declare module "@tanstack/react-router" {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DemoRoute: DemoRoute,
   FeedRoute: FeedRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,

@@ -30,6 +30,7 @@ export const user = sqliteTable("user", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => new Date())
     .notNull(),
+  lastFetchAt: integer("last_fetch_at", { mode: "timestamp_ms" }),
 })
 
 export const session = sqliteTable(
@@ -148,9 +149,15 @@ export const briefings = sqliteTable("briefings", {
   sentiment: text("sentiment"), // JSON: {"positive":n,"neutral":n,"negative":n}
   themes: text("themes"), // JSON: string[]
   highlights: text("highlights"), // JSON: [{emoji,text,tone}]
+  postsHash: text("posts_hash"),
   generatedAt: integer("generated_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
+})
+
+export const demoUsage = sqliteTable("demo_usage", {
+  date: text("date").primaryKey(),
+  count: integer("count").default(0),
 })
 
 // ---- Relations ----

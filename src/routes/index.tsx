@@ -49,6 +49,12 @@ function LandingPage() {
         <Link to="/login" className="btn btn-neutral btn-lg gap-2 mx-auto">
           Get started free <ArrowRight size={16} />
         </Link>
+        <Link
+          to="/demo"
+          className="text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
+        >
+          or try the live demo <ArrowRight size={12} className="inline-block" />
+        </Link>
       </section>
 
       {/* Hero image — no shadow, gradient blends into page */}

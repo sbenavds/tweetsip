@@ -42,30 +42,32 @@ export const Route = createFileRoute("/feed")({
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type ViewState = { type: "sip"; filterId: string | null } | { type: "insights"; accountId: string }
+export type ViewState =
+  | { type: "sip"; filterId: string | null }
+  | { type: "insights"; accountId: string }
 
 type Highlight = { emoji: string; text: string; tone: "positive" | "notable" | "warning" }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function fmtNum(n: number): string {
+export function fmtNum(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
   return String(n)
 }
 
-function greeting(): string {
+export function greeting(): string {
   const h = new Date().getHours()
   if (h < 12) return "Good morning."
   if (h < 17) return "Good afternoon."
   return "Good evening."
 }
 
-function dateLabel(): string {
+export function dateLabel(): string {
   return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
 }
 
-function displayHandle(raw: string): string {
+export function displayHandle(raw: string): string {
   return raw.startsWith("@") ? raw : `@${raw}`
 }
 
@@ -79,13 +81,13 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg,#4a1a0a,#ea580c)",
 ]
 
-function avatarGrad(h: string): string {
+export function avatarGrad(h: string): string {
   let v = 0
   for (const c of h) v = (v * 31 + c.charCodeAt(0)) & 0x7fffffff
   return AVATAR_GRADIENTS[v % AVATAR_GRADIENTS.length]
 }
 
-function todaysThread(accounts: FeedAccount[]): string | null {
+export function todaysThread(accounts: FeedAccount[]): string | null {
   const briefed = accounts.filter((a) => a.briefing)
   if (briefed.length === 0) return null
   const themes = [...new Set(briefed.flatMap((a) => a.briefing?.themes ?? []))].slice(0, 4)
@@ -101,7 +103,7 @@ function todaysThread(accounts: FeedAccount[]): string | null {
 
 // ── Avatar ─────────────────────────────────────────────────────────────────────
 
-function AvatarCircle({ account, ring = false }: { account: FeedAccount; ring?: boolean }) {
+export function AvatarCircle({ account, ring = false }: { account: FeedAccount; ring?: boolean }) {
   const letter = (account.name ?? account.handle)[0].toUpperCase()
   const ringCls = ring ? "ring-2 ring-base-content ring-offset-2 ring-offset-base-100" : ""
 
@@ -129,7 +131,7 @@ function AvatarCircle({ account, ring = false }: { account: FeedAccount; ring?: 
 
 // ── Skeletons ──────────────────────────────────────────────────────────────────
 
-function FeedSkeleton() {
+export function FeedSkeleton() {
   return (
     <div className="min-h-screen bg-base-200">
       <div className="max-w-[580px] mx-auto px-[18px] pt-24 pb-10 animate-pulse space-y-5">
@@ -198,7 +200,7 @@ function TopBar({
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-function TabBar({
+export function TabBar({
   accounts,
   view,
   onSip,
@@ -255,7 +257,7 @@ function TabBar({
 
 // ── Avatar strip ───────────────────────────────────────────────────────────────
 
-function AvatarStrip({
+export function AvatarStrip({
   accounts,
   filterId,
   onFilter,
@@ -324,7 +326,7 @@ function AvatarStrip({
 
 // ── Sip view ───────────────────────────────────────────────────────────────────
 
-function SipView({
+export function SipView({
   accounts,
   filterId,
   scanning,
@@ -441,7 +443,7 @@ function SipView({
 
 // ── Post row ───────────────────────────────────────────────────────────────────
 
-function PostRow({ post, isLast }: { post: FeedAccount["posts"][number]; isLast: boolean }) {
+export function PostRow({ post, isLast }: { post: FeedAccount["posts"][number]; isLast: boolean }) {
   return (
     <div
       className={`flex items-start justify-between gap-4 px-5 py-[11px] hover:bg-base-content/[0.025] transition-colors ${
@@ -460,7 +462,7 @@ function PostRow({ post, isLast }: { post: FeedAccount["posts"][number]; isLast:
 
 // ── Insights view ──────────────────────────────────────────────────────────────
 
-function InsightsView({
+export function InsightsView({
   account,
   scanning,
   onBack,
